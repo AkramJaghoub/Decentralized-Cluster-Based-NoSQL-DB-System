@@ -1,0 +1,13 @@
+package com.example.Database.query;
+
+public enum QueryType {
+    CREATE_DATABASE,
+    CREATE_COLLECTION,
+    CREATE_DOCUMENT,
+    UPDATE_INDEX,
+    FIND_DATABASES,
+    FIND_COLLECTIONS,
+    DELETE_DATABASE,
+    DELETE_COLLECTION,
+    DELETE_DOCUMENT
+}

@@ -1,0 +1,75 @@
+version: '3'
+
+services:
+  worker1:
+    build: ./Database
+    container_name: worker1
+    restart: always
+    ports:
+     - "9002:9000"
+    volumes:
+      - ./Database/src/main/resources:/app/data  # Mount the resources directory of your Database to /app/data in the container
+    networks:
+      custom_network:
+        ipv4_address: 192.168.1.101
+
+  worker2:
+    build: ./Database
+    container_name: worker2
+    restart: always
+    ports:
+     - "9003:9000"
+    volumes:
+      - ./Database/src/main/resources:/app/data  # Same volume mapping for worker2
+    networks:
+      custom_network:
+        ipv4_address: 192.168.1.102
+
+  worker3:
+    build: ./Database
+    container_name: worker3
+    restart: always
+    ports:
+     - "9004:9000"
+    volumes:
+      - ./Database/src/main/resources:/app/data  # Same volume mapping for worker3
+    networks:
+      custom_network:
+        ipv4_address: 192.168.1.103
+
+  worker4:
+    build: ./Database
+    container_name: worker4
+    restart: always
+    ports:
+     - "9005:9000"
+    volumes:
+      - ./Database/src/main/resources:/app/data  # Same volume mapping for worker4
+    networks:
+      custom_network:
+        ipv4_address: 192.168.1.104
+
+  bootstrapper:
+    build: ./Bootstrapper
+    container_name: bootstrapper
+    restart: always
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./Bootstrapper/src/main/resources:/app/data  # Similarly, for the bootstrapper
+    networks:
+      custom_network:
+        ipv4_address: 192.168.1.6
+    depends_on:
+      - worker1
+      - worker2
+      - worker3
+      - worker4
+
+networks:
+  custom_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.1.0/24
