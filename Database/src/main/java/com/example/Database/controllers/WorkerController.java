@@ -3,7 +3,6 @@ package com.example.Database.controllers;
 import com.example.Database.affinity.AffinityManager;
 import com.example.Database.services.AuthenticationService;
 import com.example.Database.services.UserService;
-import com.example.Database.services.WorkerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,18 +13,12 @@ import org.springframework.web.bind.annotation.*;
 public class WorkerController {
 
     @Autowired
-    WorkerService workerService;
-    @Autowired
     AuthenticationService authenticationService;
     @Autowired
     AffinityManager affinityManager;
 
     @Autowired
     UserService userService;
-    @GetMapping("/getWorker/{username}")
-    public String getWorker(@PathVariable String username) {
-       return workerService.getWorkerIdentity(username);
-    }
 
     @GetMapping("/setCurrentWorkerName/{worker_name}")
     public ResponseEntity<String> setCurrentWorkerName(
@@ -57,7 +50,7 @@ public class WorkerController {
                           @RequestHeader("adminPassword") String adminPassword,
                           @RequestHeader("accountNumber") String accountNumber,
                           @RequestHeader("password") String password) {
-        if(!authenticationService.isAdmin(adminUsername, adminPassword)){
+        if(authenticationService.isAdmin(adminUsername, adminPassword)){
             return "User is not authorized";
         }
         return userService.addUser(accountNumber, password);

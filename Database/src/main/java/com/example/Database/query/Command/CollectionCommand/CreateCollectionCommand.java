@@ -1,5 +1,8 @@
 package com.example.Database.query.Command.CollectionCommand;
 
+import com.example.Database.model.ApiResponse;
+import com.example.Database.model.Collection;
+import com.example.Database.model.Database;
 import com.example.Database.query.Command.CommandUtils;
 import com.example.Database.query.Command.QueryCommand;
 import com.example.Database.query.QueryType;
@@ -9,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-@SuppressWarnings("unchecked")
 public class CreateCollectionCommand implements QueryCommand {
 
     @Autowired
@@ -21,15 +23,13 @@ public class CreateCollectionCommand implements QueryCommand {
     }
 
     @Override
-    public JSONObject execute(JSONObject query) {
+    public ApiResponse execute(JSONObject query) {
         try {
-            String databaseName = CommandUtils.getDatabaseName(query);
-            String collectionName = CommandUtils.getCollectionName(query);
+            Database database = CommandUtils.getDatabase(query);
+            Collection collection = CommandUtils.getCollection(query);
             JSONObject jsonSchema = CommandUtils.getSchemaJson(query);
-            String result = collectionService.createCollection(databaseName, collectionName, jsonSchema);
-            JSONObject response = new JSONObject();
-            response.put("status", result);
-            return response;
+            System.out.println(collection.getCollectionName());
+            return collectionService.createCollection(database, collection.getCollectionName(), jsonSchema);
         }catch (Exception e){
             throw new RuntimeException(e);
         }

@@ -1,4 +1,4 @@
-package com.example.Database.schema;
+package com.example.Database.schema.datatype;
 
 public enum DataTypes {
     STRING("STRING"),

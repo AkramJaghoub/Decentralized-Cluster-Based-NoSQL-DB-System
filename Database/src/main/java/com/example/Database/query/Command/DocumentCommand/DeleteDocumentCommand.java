@@ -1,5 +1,8 @@
 package com.example.Database.query.Command.DocumentCommand;
 
+import com.example.Database.model.ApiResponse;
+import com.example.Database.model.Collection;
+import com.example.Database.model.Document;
 import com.example.Database.query.Command.CommandUtils;
 import com.example.Database.query.Command.QueryCommand;
 import com.example.Database.query.QueryType;
@@ -9,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-@SuppressWarnings("unchecked")
 public class DeleteDocumentCommand implements QueryCommand {
 
     @Autowired
@@ -21,15 +23,12 @@ public class DeleteDocumentCommand implements QueryCommand {
     }
 
     @Override
-    public JSONObject execute(JSONObject commandJson) {
+    public ApiResponse execute(JSONObject commandJson) {
         try {
-            String databaseName = CommandUtils.getDatabaseName(commandJson);
-            String collectionName = CommandUtils.getCollectionName(commandJson);
+            Collection collection = CommandUtils.getCollection(commandJson);
             String documentId = CommandUtils.getDocumentId(commandJson);
-            String result = documentServices.deleteDocument(databaseName, collectionName, documentId);
-            JSONObject response = new JSONObject();
-            response.put("status", result);
-            return response;
+            Document document = new Document(documentId);
+            return documentServices.deleteDocument(collection, document);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

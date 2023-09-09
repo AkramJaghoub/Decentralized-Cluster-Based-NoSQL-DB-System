@@ -95,7 +95,15 @@ public class IndexManager {
     }
 
     private void appendToFile(String collectionName, int hashcode, int index) {
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(getIndexFilePath(collectionName), true))) {
+        String indexPath = getIndexFilePath(collectionName);
+        File indexesDirectory = new File(FileService.getDatabasePath() + "/indexes");
+        if (!indexesDirectory.exists()) {
+            if (!indexesDirectory.mkdirs()) {
+                System.err.println("Failed to create 'indexes' directory.");
+                return;  // Return if the directory creation fails
+            }
+        }
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(indexPath, true))) {
             writer.write(hashcode + "," + index);
             writer.newLine();
         } catch (IOException e) {
@@ -180,14 +188,14 @@ public class IndexManager {
         indexObj.insert(Integer.toString(propertyHashCode), documentIndex);
     }
 
-    public Integer searchInPropertyIndex(String collectionName, String propertyName, int propertyHashCode) {
-        String propertyIndexKey = collectionName + "_" + propertyName;
-        PropertyIndex index = propertyIndexMap.get(propertyIndexKey);
-        if (index == null) {
-            throw new IllegalArgumentException("Property Index does not exist.");
-        }
-        return index.search(Integer.toString(propertyHashCode));
-    }
+//    public Integer searchInPropertyIndex(String collectionName, String propertyName, int propertyHashCode) {
+//        String propertyIndexKey = collectionName + "_" + propertyName;
+//        PropertyIndex index = propertyIndexMap.get(propertyIndexKey);
+//        if (index == null) {
+//            throw new IllegalArgumentException("Property Index does not exist.");
+//        }
+//        return index.search(Integer.toString(propertyHashCode));
+//    }
 
     public boolean propertyIndexExists(String collectionName, String propertyName) {
         String propertyIndexKey = collectionName + "_" + propertyName;
@@ -195,6 +203,6 @@ public class IndexManager {
     }
 
     public boolean indexExists(String collectionName) {
-        return indexMap.containsKey(collectionName);
+        return !indexMap.containsKey(collectionName);
     }
 }

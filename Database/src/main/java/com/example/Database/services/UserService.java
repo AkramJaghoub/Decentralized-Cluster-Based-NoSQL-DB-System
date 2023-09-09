@@ -15,7 +15,6 @@ public class UserService {
         if (!FileService.isFileExists(filePath)) {
             FileService.writeJsonArrayFile(new File(filePath), new JSONArray());
         }
-        System.out.println(filePath);
         JSONArray usersArray = FileService.readJsonArrayFile(new File(filePath));
         if (usersArray == null) {
             return "Error reading the file. in database " + filePath;
@@ -28,7 +27,7 @@ public class UserService {
         }
         JSONObject newUser = new JSONObject();
         newUser.put("accountNumber", accountNumber);
-        newUser.put("password", password); // NOTE: Storing passwords as plain text is not safe!
+        newUser.put("password", password);
         usersArray.add(newUser);
         FileService.writeJsonArrayFile(new File(filePath), usersArray);
         return "User added successfully";

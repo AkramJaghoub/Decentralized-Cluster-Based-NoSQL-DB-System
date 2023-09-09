@@ -1,18 +1,27 @@
 package com.example.Database.query.Command;
 
+import com.example.Database.model.Database;
 import org.json.simple.JSONObject;
 import com.example.Database.exceptions.*;
+import com.example.Database.model.Collection;
 import java.util.Optional;
 
 public class CommandUtils {
-    public static String getDatabaseName(JSONObject commandJson) throws DatabaseNotFoundException {
-        Optional<String> databaseName = Optional.ofNullable((String) commandJson.get("databaseName"));
-        return databaseName.orElseThrow(DatabaseNotFoundException::new);
+
+    public static Database getDatabase(JSONObject commandJson) throws DatabaseNotFoundException {
+        String databaseName = (String) commandJson.get("databaseName");
+        Optional<Database> database = Optional.ofNullable(databaseName)
+                .filter(name -> !name.trim().isEmpty())
+                .map(Database::new);
+        return database.orElseThrow(DatabaseNotFoundException::new);
     }
 
-    public static String getCollectionName(JSONObject commandJson) throws CollectionNotFoundException {
-        Optional<String> collectionName = Optional.ofNullable((String) commandJson.get("collectionName"));
-        return collectionName.orElseThrow(CollectionNotFoundException::new);
+    public static Collection getCollection(JSONObject commandJson) throws CollectionNotFoundException {
+        String collectionName = (String) commandJson.get("collectionName");
+        Optional<Collection> collection = Optional.ofNullable(collectionName)
+                .filter(name -> !name.trim().isEmpty())
+                .map(Collection::new);
+        return collection.orElseThrow(CollectionNotFoundException::new);
     }
 
     public static JSONObject getDocumentJson(JSONObject commandJson) throws DocumentNotFoundException {
@@ -30,14 +39,9 @@ public class CommandUtils {
         return indexProperty.orElseThrow(PropertyNameNotFound::new);
     }
 
-    public static String getNewValue(JSONObject commandJson) throws NewValueNotFound {
-        Optional<String> indexProperty = Optional.ofNullable((String) commandJson.get("newValue"));
-        return indexProperty.orElseThrow(NewValueNotFound::new);
-    }
-
-    public static JSONObject getIndexProperty(JSONObject commandJson) throws IndexPropertyNotFoundException {
-        Optional<JSONObject> indexProperty = Optional.ofNullable((JSONObject) commandJson.get("indexProperty"));
-        return indexProperty.orElseThrow(IndexPropertyNotFoundException::new);
+    public static String getNewPropertyValue(JSONObject commandJson) throws NewPropertyValueNotFound {
+        Optional<String> indexProperty = Optional.ofNullable((String) commandJson.get("newPropertyValue"));
+        return indexProperty.orElseThrow(NewPropertyValueNotFound::new);
     }
 
     public static JSONObject getSchemaJson(JSONObject commandJson) throws SchemaNotFoundException {

@@ -32,7 +32,7 @@ public final class FileService {
         return new JSONObject();
     }
 
-    public static File getCollectionPath(String collectionName) {
+    public static File getCollectionFile(String collectionName) {
         return new File(DB_DIRECTORY + "/" + collectionName + ".json");
     }
 
@@ -42,10 +42,6 @@ public final class FileService {
 
     public static File getDatabasePath() {
         return new File( DB_DIRECTORY);
-    }
-
-    public static File getFilePath() {
-        return new File(FILE_PATH + "/");
     }
 
     public static String getIndexFilePath(String collectionName) {
@@ -80,21 +76,23 @@ public final class FileService {
         }
     }
 
-    public static void writeJsonArrayFile(File file, JSONArray jsonArray) {
+    public static boolean writeJsonArrayFile(File file, JSONArray jsonArray) {
         if (!file.exists()) {
             try {
                 file.createNewFile();
             } catch (IOException e) {
                 e.printStackTrace();
                 System.err.println("Error while creating the file: " + e.getMessage());
-                return; // exit the method since the file couldn't be created
+                return false; // return false since the file couldn't be created
             }
         }
         try (FileWriter fileWriter = new FileWriter(file)) {
             fileWriter.write(jsonArray.toJSONString());
+            return true;  // return true if write was successful
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Error while writing JSON file: " + e.getMessage());
+            return false; // return false if there was an error writing
         }
     }
 
@@ -104,6 +102,6 @@ public final class FileService {
     }
 
     public static boolean isExists(File file) {
-        return file.exists() && file.isDirectory();
+        return !file.exists() || !file.isDirectory();
     }
 }

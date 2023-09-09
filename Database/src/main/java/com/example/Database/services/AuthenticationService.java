@@ -16,40 +16,37 @@ public class AuthenticationService {
         String path = FileService.adminJsonFilePath();
         JSONParser parser = new JSONParser();
         try {
-            System.out.println(path);
             Object obj = parser.parse(new FileReader(path));
             JSONObject jsonObject = (JSONObject) obj;
             String fileUsername = (String) jsonObject.get("username");
             String filePassword = (String) jsonObject.get("password");
-            System.out.println(filePassword);
-            System.out.println(fileUsername);
             if (fileUsername.equals(username) && filePassword.equals(token)) {
-                return true;
+                return false;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return false;
+        return true;
     }
 
-    public String verifyCredentials(String username, String token) {
-        JSONParser parser = new JSONParser();
-        String path = FileService.adminJsonFilePath();
-        try {
-            Object obj = parser.parse(new FileReader(path));
-            JSONObject jsonObject = (JSONObject) obj;
-            String fileUsername = (String) jsonObject.get("username");
-            String fileToken = (String) jsonObject.get("password");
-            if (!fileUsername.equals(username)) {
-                return "Wrong Username";
-            }
-            if (!fileToken.equals(token)) {
-                return "Wrong Password";
-            }
-            return "Authenticated";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "server error";
-        }
-    }
+//    public String verifyCredentials(String username, String token) {
+//        JSONParser parser = new JSONParser();
+//        String path = FileService.adminJsonFilePath();
+//        try {
+//            Object obj = parser.parse(new FileReader(path));
+//            JSONObject jsonObject = (JSONObject) obj;
+//            String fileUsername = (String) jsonObject.get("username");
+//            String fileToken = (String) jsonObject.get("password");
+//            if (!fileUsername.equals(username)) {
+//                return "Wrong Username";
+//            }
+//            if (!fileToken.equals(token)) {
+//                return "Wrong Password";
+//            }
+//            return "Authenticated";
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return "server error";
+//        }
+//    }
 }

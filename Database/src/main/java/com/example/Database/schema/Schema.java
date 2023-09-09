@@ -1,6 +1,9 @@
 package com.example.Database.schema;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+
+import java.util.Collections;
 import java.util.Map;
 
 @SuppressWarnings("unchecked")
@@ -39,6 +42,9 @@ public class Schema {
         JSONObject props = new JSONObject();
         props.putAll(getProperties());
         jsonSchema.put("properties", props);
+        JSONArray reqArray = new JSONArray();
+        Collections.addAll(reqArray, getRequired());
+        jsonSchema.put("required", reqArray);
         return jsonSchema;
     }
 }

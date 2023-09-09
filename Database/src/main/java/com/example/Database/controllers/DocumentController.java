@@ -1,5 +1,7 @@
 package com.example.Database.controllers;
 
+import com.example.Database.file.FileService;
+import com.example.Database.model.ApiResponse;
 import com.example.Database.query.QueryManager;
 import com.example.Database.services.AuthenticationService;
 import org.json.simple.JSONObject;
@@ -21,11 +23,12 @@ public class DocumentController {
                                  @RequestBody JSONObject document,
                                  @RequestHeader("username") String username,
                                  @RequestHeader("password") String token) {
-        if (!authenticationService.isAdmin(username, token)) {
+        if (authenticationService.isAdmin(username, token)) {
             return "User is not authorized";
         }
-        JSONObject response = queryManager.createDocument(dbName, collectionName, document);
-        return (String) response.get("status");
+        FileService.setDatabaseDirectory(dbName);
+        ApiResponse response = queryManager.createDocument(dbName, collectionName, document);
+        return response.getMessage();
     }
 
     @DeleteMapping("/{db_name}/{collection_name}/deleteDoc")
@@ -34,11 +37,12 @@ public class DocumentController {
                                  @RequestParam("doc_id") String documentId,
                                  @RequestHeader("username") String username,
                                  @RequestHeader("password") String token) {
-        if (!authenticationService.isAdmin(username, token)) {
+        if (authenticationService.isAdmin(username, token)) {
             return "User is not authorized";
         }
-        JSONObject response = queryManager.deleteDocument(dbName, collectionName, documentId);
-        return (String) response.get("status");
+        FileService.setDatabaseDirectory(dbName);
+        ApiResponse response = queryManager.deleteDocument(dbName, collectionName, documentId);
+        return response.getMessage();
     }
 
     @PutMapping("/{db_name}/{collection_name}/updateDoc/{property_name}")
@@ -46,13 +50,14 @@ public class DocumentController {
                                    @PathVariable("collection_name") String collectionName,
                                    @RequestParam("doc_id") String documentId,
                                    @PathVariable("property_name") String propertyName,
-                                   @RequestHeader("newValue") String newValue,
+                                   @RequestHeader("newPropertyValue") String newPropertyValue,
                                    @RequestHeader("username") String username,
                                    @RequestHeader("password") String token) {
-        if(!authenticationService.isAdmin(username, token)){
+        if(authenticationService.isAdmin(username, token)){
             return "User is not authorized";
         }
-        JSONObject response = queryManager.updateProperty(dbName, collectionName, documentId, propertyName, newValue);
-        return (String) response.get("status");
+        FileService.setDatabaseDirectory(dbName);
+        ApiResponse response = queryManager.updateProperty(dbName, collectionName, documentId, propertyName, newPropertyValue);
+        return response.getMessage();
     }
 }

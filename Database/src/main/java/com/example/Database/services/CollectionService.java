@@ -1,74 +1,64 @@
 package com.example.Database.services;
 
-import com.example.Database.file.FileService;
+import com.example.Database.file.DatabaseFileOperations;
+import com.example.Database.model.ApiResponse;
 import org.json.simple.JSONObject;
 import org.springframework.stereotype.Service;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import com.example.Database.model.Database;
 
 @Service
 public class CollectionService {
-    public String createCollection(String dbName, String collectionName, JSONObject jsonSchema) {
+
+    public ApiResponse createCollection(Database database, String collectionName, JSONObject jsonSchema) {
+        String dbName = database.getDatabaseName();
         dbName = dbName.trim().toLowerCase();
-        File dbDirectory = FileService.getDatabasePath();
-        if (!FileService.isExists(dbDirectory)) {
-            return "Database not found.";
-        }
-        File collectionFile = FileService.getCollectionPath(collectionName);
-        File schemaFile = FileService.getSchemaPath(collectionName);
-        if (collectionFile.exists()) {
-            return "Collection already exists.";
-        }
+        database.getCollectionLock().lock();
         try {
-            Files.write(Paths.get(collectionFile.getAbsolutePath()), "[]".getBytes());
-            Files.write(Paths.get(schemaFile.getAbsolutePath()), jsonSchema.toString().getBytes());
-            return "Collection " + collectionName + " created in database " + dbName;
-        } catch (IOException e) {
-            return "Failed to create collection: " + e.getMessage();
+            database.createCollection(collectionName);
+            return DatabaseFileOperations.createCollection(dbName, collectionName, jsonSchema);
+        } finally {
+            database.getCollectionLock().unlock();
         }
     }
 
-    public String deleteCollection(String dbName, String collectionName) {
+    public ApiResponse deleteCollection(Database database, String collectionName) {
+        String dbName = database.getDatabaseName();
         dbName = dbName.trim().toLowerCase();
-        File databaseFile = FileService.getDatabasePath();
-        if(!FileService.isExists(databaseFile)){
-            return "Database not found.";
-        }
-        File collectionFile = FileService.getCollectionPath(collectionName);
-        File schemaFile = FileService.getSchemaPath(collectionName);
-        if (!collectionFile.exists()) {
-            return "Collection not found.";
-        }
-        boolean isCollectionDeleted = collectionFile.delete();
-        boolean isSchemaDeleted = schemaFile.delete();
-        if (isCollectionDeleted && isSchemaDeleted) {
-            return "Collection " + collectionName + " deleted from database " + dbName;
-        } else {
-            return "Failed to delete collection or associated schema.";
+        database.getCollectionLock().lock();
+        try {
+            database.deleteCollection(collectionName);
+            return DatabaseFileOperations.deleteCollection(dbName, collectionName);
+        } finally {
+            database.getCollectionLock().unlock();
         }
     }
 
-    public List<String> listCollections(String dbName) {
-        dbName = dbName.trim().toLowerCase();
-        File dbDirectory = FileService.getDatabasePath();
-        if (!dbDirectory.exists()) return Collections.emptyList();
-        File[] files = dbDirectory.listFiles();
-        if (files == null) return Collections.emptyList();
-        List<String> collections = new ArrayList<>();
-        for (File file : files) {
-            if (isCollection(file)) {
-                collections.add(file.getName());
-            }
-        }
-        return collections;
-    }
+//    public ApiResponse listCollections(String dbName) {
+//        dbName = dbName.trim().toLowerCase();
+//        File dbDirectory = FileService.getDatabasePath();
+//        if (!dbDirectory.exists()) return new ApiResponse("Database directory does not exist.");
+//
+//        File[] files = dbDirectory.listFiles();
+//        if (files == null) return new ApiResponse("Failed to list collections.");
+//
+//        List<String> collections = new ArrayList<>();
+//        for (File file : files) {
+//            if (isCollection(file)) {
+//                collections.add(file.getName());
+//            }
+//        }
+//
+//        if (collections.isEmpty()) {
+//            return new ApiResponse("No collections found.");
+//        }
+//
+//        // Convert the list of collections to a descriptive string or JSON.
+//        // Here, I'm assuming ApiResponse has a constructor that accepts an object.
+//        // Modify as needed for your actual ApiResponse implementation.
+//        return new ApiResponse(collections);
+//    }
 
-    private boolean isCollection(File file) {
-        return file.isFile();
-    }
+//    private boolean isCollection(File file) {
+//        return file.isFile();
+//    }
 }
