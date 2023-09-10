@@ -41,8 +41,8 @@ public class NetworkService {
                 HttpEntity<String> requestEntity = new HttpEntity<>(headers);
                 RestTemplate restTemplate = new RestTemplate();
                 SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-                requestFactory.setConnectTimeout(5000);  // 5 seconds
-                requestFactory.setReadTimeout(5000);     // 5 seconds
+                requestFactory.setConnectTimeout(2000);  // 5 seconds
+                requestFactory.setReadTimeout(2000);     // 5 seconds
                 restTemplate.setRequestFactory(requestFactory);
                 System.out.println("sending request to add worker with " + node.getNodeIp());
                 ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, requestEntity, String.class);

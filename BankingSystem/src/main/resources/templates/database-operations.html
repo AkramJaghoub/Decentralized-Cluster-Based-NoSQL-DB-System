@@ -1,0 +1,200 @@
+<!--<!DOCTYPE html>-->
+<!--<html xmlns:th="http://www.thymeleaf.org" lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <title>Admin Dashboard</title>-->
+<!--    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">-->
+<!--    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>-->
+<!--    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>-->
+<!--    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">-->
+
+<!--    <style>-->
+<!--        .icon-btn {-->
+<!--            background-color: transparent;-->
+<!--            color: gray;-->
+<!--            border: none;-->
+<!--            font-weight: bold;-->
+<!--            transition: 0.3s all;-->
+<!--        }-->
+
+<!--        .icon-btn:hover {-->
+<!--            background-color: lightgray;-->
+<!--            border-radius: 50%;-->
+<!--            color: black;-->
+<!--        }-->
+
+<!--        .icon-btn:focus {-->
+<!--            color: black;-->
+<!--            outline: none;-->
+<!--        }-->
+
+<!--        .add-btn {-->
+<!--            background-color: transparent;-->
+<!--            color: gray;-->
+<!--            border: none;-->
+<!--            font-weight: bold;-->
+<!--            transition: 0.3s all;-->
+<!--        }-->
+
+<!--        .add-btn:hover {-->
+<!--            background-color: lightgray;-->
+<!--            border-radius: 50%;-->
+<!--            color: black;-->
+<!--        }-->
+
+<!--        .add-btn:focus {-->
+<!--            color: black;-->
+<!--            outline: none;-->
+<!--        }-->
+
+<!--        .expand-btn i {-->
+<!--            color: black;-->
+<!--        }-->
+
+<!--        .expand-btn:focus {-->
+<!--            outline: none;-->
+<!--        }-->
+
+<!--        .delete-btn i {-->
+<!--            color: lightgray;-->
+<!--            transition: color 0.3s, background-color 0.3s;-->
+<!--        }-->
+
+<!--        .delete-btn:hover i {-->
+<!--            color: black;-->
+<!--            background-color: rgba(211, 211, 211, 0.3);-->
+<!--        }-->
+
+<!--        .alert-danger {-->
+<!--            background-color: red;-->
+<!--            color: white;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--<div class="container mt-5">-->
+<!--    <div class="row justify-content-center">-->
+<!--        <div class="col-md-3 p-4 bg-light border-right">-->
+<!--            <h4>-->
+<!--                Databases-->
+<!--                <button class="add-btn float-right" data-toggle="modal" data-target="#createDbModal">+</button>-->
+<!--            </h4>-->
+<!--            <div class="mt-3" id="databases">-->
+<!--                <div th:each="db : ${databases}" class="mb-3">-->
+<!--                    <button class="icon-btn expand-btn"><i class="fas fa-chevron-right"></i></button>-->
+<!--                    <strong class="database-name ml-2" th:text="${db}"></strong>-->
+<!--                    <button class="icon-btn ml-2 delete-btn"><i class="fas fa-trash-alt fa-xs"></i></button>-->
+<!--                    <button class="add-btn ml-2">+</button>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--        <div class="col-md-6 p-4">-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--<div id="createDbModal" class="modal fade" tabindex="-1">-->
+<!--    <div class="modal-dialog">-->
+<!--        <div class="modal-content">-->
+<!--            <div class="modal-header">-->
+<!--                <h4 class="modal-title">Create New Database</h4>-->
+<!--                <button type="button" class="close" data-dismiss="modal">&times;</button>-->
+<!--            </div>-->
+<!--            <div class="modal-body">-->
+<!--                <form id="createDbForm">-->
+<!--                    <div class="form-group">-->
+<!--                        <label for="db_name">Database Name:</label>-->
+<!--                        <input type="text" class="form-control" id="db_name" name="db_name" required>-->
+<!--                    </div>-->
+<!--                    <button type="submit" class="btn btn-primary">Create</button>-->
+<!--                </form>-->
+<!--                <div id="errorMsg" class="alert alert-danger d-none">Database already exists.</div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--<script>-->
+<!--    $(document).ready(function(){-->
+
+<!--        function displayDatabases(databaseNames) {-->
+<!--            $('#databases').empty();-->
+<!--            databaseNames.forEach(function (dbName) {-->
+<!--                if (dbName) {-->
+<!--                    $('#databases').append(`-->
+<!--                    <div class="mb-3">-->
+<!--                        <button class="icon-btn expand-btn"><i class="fas fa-chevron-right"></i></button>-->
+<!--                        <strong class="database-name ml-2">${dbName}</strong>-->
+<!--                        <button class="icon-btn ml-2 delete-btn"><i class="fas fa-trash-alt fa-xs"></i></button>-->
+<!--                        <button class="add-btn ml-2">+</button>-->
+<!--                    </div>-->
+<!--                `);-->
+<!--                }-->
+<!--            });-->
+<!--        }-->
+
+<!--        function fetchAndDisplayDatabases() {-->
+<!--            $.get('/admin-dashboard/banking-system/fetchExistingDatabases', function (data) {-->
+<!--                displayDatabases(data);-->
+<!--            });-->
+<!--        }-->
+<!--        fetchAndDisplayDatabases();-->
+<!--        $('#createDbForm').submit(function(e) {-->
+<!--            e.preventDefault();-->
+<!--            let dbName = $('#db_name').val();-->
+<!--            $.post('/admin-dashboard/banking-system/createDB', { db_name: dbName })-->
+<!--                .done(function(response) {-->
+<!--                    // Check if the response is an array, indicating that the databases were successfully fetched-->
+<!--                    if (Array.isArray(response)) {-->
+<!--                        displayDatabases(response);-->
+<!--                        $('#errorMsg').addClass('d-none');-->
+<!--                        $('#createDbModal').modal('hide');-->
+<!--                    }-->
+<!--                    else {-->
+<!--                        $('#errorMsg').removeClass('d-none').text(response);-->
+<!--                    }-->
+<!--                })-->
+<!--                .fail(function(jqXHR, textStatus, errorThrown) {-->
+<!--                    console.error(jqXHR, textStatus, errorThrown);-->
+<!--                    if (jqXHR.status === 409) { // Conflict-->
+<!--                        $('#errorMsg').removeClass('d-none').text(jqXHR.responseText || "Database already exists.");-->
+<!--                    } else {-->
+<!--                        $('#errorMsg').removeClass('d-none').text("There was an error processing your request. Please try again.");-->
+<!--                    }-->
+<!--                })-->
+<!--                .always(function(responseOrJqXHR, textStatus, jqXHROrErrorThrown) {-->
+<!--                    console.log(responseOrJqXHR, textStatus, jqXHROrErrorThrown);-->
+<!--                });-->
+<!--        });-->
+
+<!--        $(document).on('click', '.delete-btn', function() {-->
+<!--            const dbName = $(this).siblings('.database-name').text();-->
+
+<!--            const userConfirmation = confirm(`Are you sure you want to delete the database "${dbName}"?`);-->
+<!--            if (!userConfirmation) {-->
+<!--                return;-->
+<!--            }-->
+
+<!--            $.post('/admin-dashboard/banking-system/deleteDB', { db_name: dbName })-->
+<!--                .done(function(response) {-->
+<!--                    // Check if the response is an array, indicating that the databases were successfully fetched-->
+<!--                    if (Array.isArray(response)) {-->
+<!--                        displayDatabases(response);-->
+<!--                        let successMsg = $(`<div class="alert alert-success mt-3">Database ${dbName} has been deleted.</div>`);-->
+<!--                        $('.container').prepend(successMsg);-->
+<!--                        setTimeout(() => successMsg.fadeOut(), 3000); // Remove the message after 3 seconds-->
+<!--                    }-->
+<!--                    else {-->
+<!--                        alert(response);-->
+<!--                    }-->
+<!--                })-->
+<!--                .fail(function(jqXHR, textStatus, errorThrown) {-->
+<!--                    console.error(jqXHR, textStatus, errorThrown);-->
+<!--                    alert("There was an error processing your request. Please try again.");-->
+<!--                });-->
+<!--        });-->
+<!--    });-->
+<!--</script>-->
+<!--</body>-->
+<!--</html>-->

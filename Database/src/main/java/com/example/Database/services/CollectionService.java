@@ -5,6 +5,10 @@ import com.example.Database.model.ApiResponse;
 import org.json.simple.JSONObject;
 import org.springframework.stereotype.Service;
 import com.example.Database.model.Database;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 public class CollectionService {
@@ -15,50 +19,33 @@ public class CollectionService {
         database.getCollectionLock().lock();
         try {
             database.createCollection(collectionName);
-            return DatabaseFileOperations.createCollection(dbName, collectionName, jsonSchema);
+            return DatabaseFileOperations.createCollection(collectionName, jsonSchema);
         } finally {
             database.getCollectionLock().unlock();
         }
     }
 
     public ApiResponse deleteCollection(Database database, String collectionName) {
-        String dbName = database.getDatabaseName();
-        dbName = dbName.trim().toLowerCase();
         database.getCollectionLock().lock();
         try {
             database.deleteCollection(collectionName);
-            return DatabaseFileOperations.deleteCollection(dbName, collectionName);
+            return DatabaseFileOperations.deleteCollection(collectionName);
         } finally {
             database.getCollectionLock().unlock();
         }
     }
 
-//    public ApiResponse listCollections(String dbName) {
-//        dbName = dbName.trim().toLowerCase();
-//        File dbDirectory = FileService.getDatabasePath();
-//        if (!dbDirectory.exists()) return new ApiResponse("Database directory does not exist.");
-//
-//        File[] files = dbDirectory.listFiles();
-//        if (files == null) return new ApiResponse("Failed to list collections.");
-//
-//        List<String> collections = new ArrayList<>();
-//        for (File file : files) {
-//            if (isCollection(file)) {
-//                collections.add(file.getName());
-//            }
-//        }
-//
-//        if (collections.isEmpty()) {
-//            return new ApiResponse("No collections found.");
-//        }
-//
-//        // Convert the list of collections to a descriptive string or JSON.
-//        // Here, I'm assuming ApiResponse has a constructor that accepts an object.
-//        // Modify as needed for your actual ApiResponse implementation.
-//        return new ApiResponse(collections);
-//    }
-
-//    private boolean isCollection(File file) {
-//        return file.isFile();
-//    }
+    public List<String> readCollections(Database database) {
+        Set<String> uniqueCollections = new HashSet<>();
+        database.getCollectionLock().lock();
+        try {
+            List<String> inMemoryCollections = database.readCollections();
+            uniqueCollections.addAll(inMemoryCollections);
+            List<String> inFileCollections = DatabaseFileOperations.readCollections();
+            uniqueCollections.addAll(inFileCollections);
+            return new ArrayList<>(uniqueCollections);
+        } finally {
+            database.getCollectionLock().unlock();
+        }
+    }
 }

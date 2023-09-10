@@ -1,11 +1,9 @@
 package com.example.BankingSystem.controllers;
 
-import com.example.web.model.User;
+import com.example.web.model.Admin;
 import com.example.BankingSystem.services.AuthenticationService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,13 +23,13 @@ public class LoginController {
 
     @PostMapping("/login")
     public String login(@RequestParam("username") String username,
-                        @RequestParam("token") String token,
+                        @RequestParam("password") String password,
                         Model model,
                         HttpSession httpSession) {
-        String response = authenticateService.checkAdmin(username, token);
+        String response = authenticateService.checkAdmin(username, password);
         System.out.println(response);
         if ("Authenticated".equals(response)) {
-            User login = new User(username, token);
+            Admin login = new Admin(username, password);
             httpSession.setAttribute("login", login);
             return "admin-dashboard";
         } else {

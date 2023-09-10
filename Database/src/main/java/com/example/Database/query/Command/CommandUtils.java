@@ -1,6 +1,7 @@
 package com.example.Database.query.Command;
 
 import com.example.Database.model.Database;
+import com.example.Database.model.InMemoryDatabase;
 import org.json.simple.JSONObject;
 import com.example.Database.exceptions.*;
 import com.example.Database.model.Collection;
@@ -10,10 +11,11 @@ public class CommandUtils {
 
     public static Database getDatabase(JSONObject commandJson) throws DatabaseNotFoundException {
         String databaseName = (String) commandJson.get("databaseName");
-        Optional<Database> database = Optional.ofNullable(databaseName)
-                .filter(name -> !name.trim().isEmpty())
-                .map(Database::new);
-        return database.orElseThrow(DatabaseNotFoundException::new);
+        Database database = InMemoryDatabase.getInstance().getOrCreateDatabase(databaseName);
+        if (database == null) {
+            throw new DatabaseNotFoundException();
+        }
+        return database;
     }
 
     public static Collection getCollection(JSONObject commandJson) throws CollectionNotFoundException {

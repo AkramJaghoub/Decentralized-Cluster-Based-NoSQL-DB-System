@@ -28,7 +28,6 @@ public class CreateCollectionCommand implements QueryCommand {
             Database database = CommandUtils.getDatabase(query);
             Collection collection = CommandUtils.getCollection(query);
             JSONObject jsonSchema = CommandUtils.getSchemaJson(query);
-            System.out.println(collection.getCollectionName());
             return collectionService.createCollection(database, collection.getCollectionName(), jsonSchema);
         }catch (Exception e){
             throw new RuntimeException(e);

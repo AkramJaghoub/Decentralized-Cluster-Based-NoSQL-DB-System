@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.example</groupId>
 	<artifactId>BankingSystem</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0</version>
 	<name>BankingSystem</name>
 	<description>Demo application for the capstone project</description>
 	<properties>
@@ -19,17 +19,8 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-mongodb</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
@@ -57,8 +48,8 @@
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
     </dependencies>
-
 	<build>
+		<finalName>BankingSystem</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>

@@ -6,7 +6,11 @@ import com.example.Database.schema.SchemaBuilder;
 import com.example.Database.query.QueryManager;
 import com.example.Database.services.AuthenticationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -21,7 +25,7 @@ public class CollectionController {
                                    @PathVariable("collection_name") String collectionName,
                                    @RequestHeader("username") String username,
                                    @RequestHeader("password") String token) {
-        if(authenticationService.isAdmin(username, token)){
+        if(!authenticationService.isAdmin(username, token)){
             return "User is not authorized";
         }
         FileService.setDatabaseDirectory(dbName);
@@ -34,7 +38,7 @@ public class CollectionController {
                                    @PathVariable("collection_name") String collectionName,
                                    @RequestHeader("username") String username,
                                    @RequestHeader("password") String token) {
-        if(authenticationService.isAdmin(username, token)){
+        if(!authenticationService.isAdmin(username, token)){
             return "User is not authorized";
         }
         FileService.setDatabaseDirectory(dbName);
@@ -42,17 +46,19 @@ public class CollectionController {
         return response.getMessage();
     }
 
-//    @GetMapping("/{db_name}/collectionsList")
-//    public String databaseList(@PathVariable("db_name") String dbName,
-//                               @RequestHeader("username") String username,
-//                               @RequestHeader("password") String token) {
-//        if (!authenticationService.isAdmin(username, token)) {
-//            return "User is not authorized";
-//        }
-//        List<String> collections = collectionService.listCollections(dbName);
-//        if (collections.isEmpty()) {
-//            return "No collections found";
-//        }
-//        return collections.toString();
-//    }
+    @GetMapping("/fetchExistingCollections/{db_name}")
+    public ResponseEntity<List<String>> fetchExistingCollections(
+            @PathVariable("db_name") String dbName,
+            @RequestHeader("username") String username,
+            @RequestHeader("password") String password) {
+        if (!authenticationService.isAdmin(username, password)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        FileService.setDatabaseDirectory(dbName);
+        List<String> collections = queryManager.readCollections(dbName);
+        if (collections.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<>(collections, HttpStatus.OK);
+    }
 }

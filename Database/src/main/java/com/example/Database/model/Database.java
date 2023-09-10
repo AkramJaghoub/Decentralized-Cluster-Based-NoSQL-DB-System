@@ -1,6 +1,10 @@
 package com.example.Database.model;
 
+import com.example.Database.file.DatabaseFileOperations;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -29,30 +33,16 @@ public class Database {
         }
         Collection collection = new Collection(collectionName);
         collections.put(collectionName, collection);
-        System.out.println(collectionName);
-        System.out.println(collections.entrySet().toString());
-        System.out.println(collections.values());
     }
 
-    public Collection getCollection(String collectionName) {
-        if (collectionName == null || collectionName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Collection name cannot be null or empty.");
-        }
-        return collections.get(collectionName);
+    public List<String> readCollections() {
+        return new ArrayList<>(collections.keySet());
     }
 
-    public void deleteCollection(String collectionName){
+    public void deleteCollection(String collectionName) {
         if (collectionName == null || collectionName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Collection name cannot be null or empty.");
+            throw new IllegalArgumentException("Database name cannot be null or empty.");
         }
-        try {
-            Collection collection = collections.get(collectionName);
-            if (collection == null) {
-                throw new ClassNotFoundException("Collection '" + collectionName + "' not found.");
-            }
-            collections.remove(collectionName);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        collections.remove(collectionName);
     }
 }

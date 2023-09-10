@@ -26,7 +26,7 @@ public class WorkerController {
             @RequestHeader("username") String username,
             @RequestHeader("password") String password) {
              System.out.println("Received request to set worker name to: " + workerName + " with user: " + username);
-        if (!"admin".equals(username) || !"admin@12345".equals(password)) {
+        if (!authenticationService.isAdmin(username, password)) {
             return new ResponseEntity<>("Invalid credentials", HttpStatus.UNAUTHORIZED);
         }
         try {
@@ -50,7 +50,7 @@ public class WorkerController {
                           @RequestHeader("adminPassword") String adminPassword,
                           @RequestHeader("accountNumber") String accountNumber,
                           @RequestHeader("password") String password) {
-        if(authenticationService.isAdmin(adminUsername, adminPassword)){
+        if(!authenticationService.isAdmin(adminUsername, adminPassword)){
             return "User is not authorized";
         }
         return userService.addUser(accountNumber, password);

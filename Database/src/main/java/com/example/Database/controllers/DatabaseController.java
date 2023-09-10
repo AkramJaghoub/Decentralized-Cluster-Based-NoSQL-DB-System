@@ -5,7 +5,10 @@ import com.example.Database.model.ApiResponse;
 import com.example.Database.query.QueryManager;
 import com.example.Database.services.AuthenticationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -18,9 +21,9 @@ public class DatabaseController {
     @PostMapping("/createDB/{db_name}")
     public String createDatabase(@PathVariable("db_name") String dbName,
                                  @RequestHeader("username") String username,
-                                 @RequestHeader("password") String token) {
+                                 @RequestHeader("password") String password) {
 
-        if(authenticationService.isAdmin(username, token)){
+        if(!authenticationService.isAdmin(username, password)){
             return "User is not authorized";
         }
         FileService.setDatabaseDirectory(dbName);
@@ -31,8 +34,8 @@ public class DatabaseController {
     @DeleteMapping("/deleteDB/{db_name}")
     public String deleteDatabase(@PathVariable("db_name") String dbName,
                                  @RequestHeader("username") String username,
-                                 @RequestHeader("password") String token) {
-        if (authenticationService.isAdmin(username, token)) {
+                                 @RequestHeader("password") String password) {
+        if (!authenticationService.isAdmin(username, password)) {
             return "User is not authorized";
         }
         FileService.setDatabaseDirectory(dbName);
@@ -40,16 +43,17 @@ public class DatabaseController {
         return response.getMessage();
     }
 
-//    @GetMapping("/databasesList")
-//    public String databaseList(@RequestHeader("username") String username,
-//                                     @RequestHeader("password") String token) {
-//        if (!authenticationService.isAdmin(username, token)) {
-//            return "User is not authorized";
-//        }
-//        List<String> databases = databaseService.listDatabases();
-//        if (databases.isEmpty()) {
-//            return "No collections found";
-//        }
-//        return databases.toString();
-//    }
+    @GetMapping("/fetchExistingDatabases")
+    public ResponseEntity<List<String>> fetchExistingDatabases(
+            @RequestHeader("username") String username,
+            @RequestHeader("password") String password) {
+        if (!authenticationService.isAdmin(username, password)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        List<String> databases = queryManager.readDatabases();
+        if (databases.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<>(databases, HttpStatus.OK);
+    }
 }

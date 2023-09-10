@@ -7,19 +7,18 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class AuthenticationService {
 
-    private static final String localhost = "http://localhost:9000";
 
-    public String checkAdmin(String username, String token) {
-        return checkCredentials(username, token, localhost + "/api/checkAdmin/");
+    public String checkAdmin(String username, String password) {
+        return checkCredentials("1", username, password, "/api/check/admin");
     }
 
-    public String checkUser(String username, String token) {
-        return checkCredentials(username, token, localhost + "/api/checkUser/");
+    public String checkUser(String username, String password) {
+        return checkCredentials("5", username, password, "/api/check/user");
     }
 
     public String getWorker(String username) {
         RestTemplate restTemplate = new RestTemplate();
-        String url = localhost + "/api/getWorker/" + username;
+        String url = "/api/getWorker/" + username;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> request = new HttpEntity<>(headers);
@@ -31,14 +30,16 @@ public class AuthenticationService {
         }
     }
 
-    private String checkCredentials(String username, String token, String url) {
+    private String checkCredentials(String workerId, String username, String password, String url) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("token", token);
-        String customURL = url + username;
+        headers.set("username", username);
+        headers.set("password", password);
         HttpEntity<String> request = new HttpEntity<>(headers);
         try {
+            String customURL = "http://worker" + workerId + ":9000" + url;
+            System.out.println(customURL);
             ResponseEntity<String> response = restTemplate.exchange(customURL, HttpMethod.GET, request, String.class);
             return response.getBody();
         } catch (Exception e) {

@@ -32,6 +32,10 @@ public final class FileService {
         return new JSONObject();
     }
 
+    public static File getRootFile(){
+        return new File(FILE_PATH);
+    }
+
     public static File getCollectionFile(String collectionName) {
         return new File(DB_DIRECTORY + "/" + collectionName + ".json");
     }
@@ -64,8 +68,8 @@ public final class FileService {
     public static JSONArray readJsonArrayFile(File file) {
         JSONParser parser = new JSONParser();
         try (FileReader reader = new FileReader(file)) {
-            if (file.length() == 0) { // Check if the file is empty
-                return new JSONArray(); // Return an empty JSONArray
+            if (file.length() == 0) {
+                return new JSONArray();
             }
             Object obj = parser.parse(reader);
             return (JSONArray) obj;
@@ -83,16 +87,16 @@ public final class FileService {
             } catch (IOException e) {
                 e.printStackTrace();
                 System.err.println("Error while creating the file: " + e.getMessage());
-                return false; // return false since the file couldn't be created
+                return false;
             }
         }
         try (FileWriter fileWriter = new FileWriter(file)) {
             fileWriter.write(jsonArray.toJSONString());
-            return true;  // return true if write was successful
+            return true;
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Error while writing JSON file: " + e.getMessage());
-            return false; // return false if there was an error writing
+            return false;
         }
     }
 
@@ -101,7 +105,7 @@ public final class FileService {
         return usersDirectoryPath + "/" + fileName + ".json";
     }
 
-    public static boolean isExists(File file) {
+    public static boolean isDirectoryExists(File file) {
         return !file.exists() || !file.isDirectory();
     }
 }

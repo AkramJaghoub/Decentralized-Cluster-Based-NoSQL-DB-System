@@ -6,6 +6,9 @@ import com.example.Database.query.Command.Factory.QueryObjectFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.json.simple.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -33,6 +36,17 @@ public class QueryManager {
         return execute(jsonObject);
     }
 
+    public List<String> readDatabases() {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("queryType", QueryType.READ_DATABASES.toString());
+        ApiResponse response = execute(jsonObject);
+        List<String> databaseList = new ArrayList<>();
+        if (response != null) {
+            databaseList.add(response.getMessage());
+        }
+        return databaseList;
+    }
+
     public ApiResponse createCollection(String dbName, String collectionName, JSONObject schema) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("queryType", QueryType.CREATE_COLLECTION.toString());
@@ -48,6 +62,18 @@ public class QueryManager {
         jsonObject.put("databaseName", dbName);
         jsonObject.put("collectionName", collectionName);
         return execute(jsonObject);
+    }
+
+    public List<String> readCollections(String databaseName) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("queryType", QueryType.READ_COLLECTIONS.toString());
+        jsonObject.put("databaseName", databaseName);
+        ApiResponse response = execute(jsonObject);
+        List<String> collectionList = new ArrayList<>();
+        if (response != null) {
+            collectionList.add(response.getMessage());
+        }
+        return collectionList;
     }
 
     public ApiResponse createDocument(String databaseName, String collectionName, JSONObject document) {

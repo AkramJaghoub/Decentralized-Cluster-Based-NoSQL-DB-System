@@ -6,24 +6,27 @@ import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.stereotype.Component;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 @Component
 public final class DatabaseFileOperations {
 
     private DatabaseFileOperations() {}
 
-    public static ApiResponse createDatabase(String databaseName) {
+    public static ApiResponse createDatabase() {
         File dbDirectory = FileService.getDatabasePath();
-        if (FileService.isExists(dbDirectory)) {
+        if (FileService.isDirectoryExists(dbDirectory)) {
             if (dbDirectory.mkdir()) {
                 File schemasDirectory = new File(dbDirectory + "/schemas/");
                 schemasDirectory.mkdirs();
-                return new ApiResponse("Database " + databaseName + " created.");
+                return new ApiResponse("database added successfully");
             } else {
                 return new ApiResponse("Failed to create database.");
             }
@@ -32,22 +35,34 @@ public final class DatabaseFileOperations {
         }
     }
 
-    public static ApiResponse deleteDatabase(String databaseName) {
+    public static ApiResponse deleteDatabase() {
         File dbDirectory = FileService.getDatabasePath();
-        if (FileService.isExists(dbDirectory)) {
+        if (FileService.isDirectoryExists(dbDirectory)) {
             return new ApiResponse("Database does not exist.");
         }
         try {
             FileUtils.deleteDirectory(dbDirectory);
-            return new ApiResponse("Database " + databaseName + " deleted.");
+            return new ApiResponse("Database has been successfully deleted.");
         } catch (IOException e) {
             return new ApiResponse("Failed to delete database: " + e.getMessage());
         }
     }
 
-    public static ApiResponse createCollection(String databaseName, String collectionName, JSONObject jsonSchema) {
+    public static List<String> readDatabases() {
+        File rootDirectory = FileService.getRootFile();
+        if (!rootDirectory.exists()) {
+            return Collections.emptyList();
+        }
+        String[] directories = rootDirectory.list((current, name) -> new File(current, name).isDirectory());
+        if (directories == null) {
+            return Collections.emptyList();
+        }
+        return Arrays.asList(directories);
+    }
+
+    public static ApiResponse createCollection(String collectionName, JSONObject jsonSchema) {
         File dbDirectory = FileService.getDatabasePath();
-        if (FileService.isExists(dbDirectory)) {
+        if (FileService.isDirectoryExists(dbDirectory)) {
             return new ApiResponse("Database not found.");
         }
         File collectionFile = FileService.getCollectionFile(collectionName);
@@ -58,15 +73,15 @@ public final class DatabaseFileOperations {
         try {
             Files.write(Paths.get(collectionFile.getAbsolutePath()), "[]".getBytes());
             Files.write(Paths.get(schemaFile.getAbsolutePath()), jsonSchema.toString().getBytes());
-            return new ApiResponse("Collection " + collectionName + " created in database " + databaseName);
+            return new ApiResponse("Collection has been successfully created");
         } catch (IOException e) {
             return new ApiResponse("Failed to create collection: " + e.getMessage());
         }
     }
 
-    public static ApiResponse deleteCollection(String databaseName, String collectionName) {
+    public static ApiResponse deleteCollection(String collectionName) {
         File databaseFile = FileService.getDatabasePath();
-        if (FileService.isExists(databaseFile)) {
+        if (FileService.isDirectoryExists(databaseFile)) {
             return new ApiResponse("Database not found.");
         }
         File collectionFile = FileService.getCollectionFile(collectionName);
@@ -77,10 +92,31 @@ public final class DatabaseFileOperations {
         boolean isCollectionDeleted = collectionFile.delete();
         boolean isSchemaDeleted = schemaFile.delete();
         if (isCollectionDeleted && isSchemaDeleted) {
-            return new ApiResponse("Collection " + collectionName + " deleted from database " + databaseName);
+            return new ApiResponse("Collection has been successfully deleted");
         } else {
             return new ApiResponse("Failed to delete collection or associated schema.");
         }
+    }
+
+    public static List<String> readCollections() {
+        File dbDirectory = FileService.getDatabasePath();
+        if (!dbDirectory.exists() || !dbDirectory.isDirectory()) {
+            return Collections.emptyList();
+        }
+        File[] collectionFiles = dbDirectory.listFiles((dir, name) -> name.endsWith(".json"));
+        if (collectionFiles == null) {
+            return Collections.emptyList();
+        }
+        List<String> collectionNames = new ArrayList<>();
+        for (File collectionFile : collectionFiles) {
+            String fileName = collectionFile.getName();
+            int extensionIndex = fileName.lastIndexOf(".");
+            if (extensionIndex >= 0) {
+                String collectionName = fileName.substring(0, extensionIndex);
+                collectionNames.add(collectionName);
+            }
+        }
+        return collectionNames;
     }
 
     @SuppressWarnings("unchecked")
@@ -136,7 +172,6 @@ public final class DatabaseFileOperations {
         try {
             JSONArray jsonArray = new JSONArray();
             int index = getDocumentIndex(collectionName, documentId, indexManager, jsonArray);
-            System.out.println(index);
             if(index < 0) {
                 return new ApiResponse("Document with id " + documentId + " not found in " + collectionName);
             }

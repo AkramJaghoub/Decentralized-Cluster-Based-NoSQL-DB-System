@@ -6,69 +6,86 @@
     <title>Login Page</title>
     <style>
         body {
+            background-color: #2c2c2c;
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
             margin: 0;
             padding: 0;
-        }
-        .container {
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
+            justify-content: center;
+            min-height: 100vh;
         }
-        .login-box {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
+
+        .login-panel {
+            width: 300px;
+            background: #fff;
+            padding: 40px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            border-radius: 10px;
         }
-        .login-box h1 {
-            margin-bottom: 20px;
-            text-align: center;
+
+        label {
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-bottom: 15px;
         }
-        .login-box input {
-            width: 100%;
+
+        input[type="text"], input[type="password"] {
             padding: 10px;
-            margin-bottom: 10px;
+            width: 100%;
             border: 1px solid #ccc;
-            border-radius: 4px;
+            border-radius: 5px;
+            margin-bottom: 20px;
         }
-        .login-box button {
-            width: 100%;
-            padding: 10px;
+
+        .btn-login {
             background-color: #007BFF;
             color: white;
+            padding: 10px 20px;
             border: none;
-            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            border-radius: 5px;
+            width: 100%;
+            text-align: center;
         }
-        @media screen and (max-width: 600px) {
-            .login-box {
-                width: 90%;
-                padding: 15px;
-            }
+
+        .btn-login:hover {
+            background-color: #0056b3;
+        }
+
+        .error-message {
+            background-color: #ff4c4c;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="login-box">
-        <div th:if="${result}">
-            <p th:text="${result}" style="color: red;"></p>
-        </div>
-        <h1>Login</h1>
-        <form th:action="@{/login}" method="post">
-            <label>
-                <input type="text" name="username" placeholder="Username" required>
-            </label>
-            <label>
-                <input type="password" name="token" placeholder="Password" required>
-            </label>
-            <button type="submit">Login</button>
-        </form>
+<div class="login-panel">
+    <div th:if="${result}">
+        <div class="error-message" th:text="${result}"></div>
     </div>
+    <h1>Login</h1>
+    <form th:action="@{/login}" method="post">
+        <label>
+            Username
+            <input type="text" name="username" placeholder="Enter your username" required>
+        </label>
+        <label>
+            Password
+            <input type="password" name="password" placeholder="Enter your password" required>
+        </label>
+        <button class="btn-login" type="submit">Login</button>
+    </form>
 </div>
 </body>
 </html>

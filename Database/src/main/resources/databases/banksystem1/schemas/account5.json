@@ -1,0 +1,1 @@
+{"type":"object","properties":{"balance":"DOUBLE","clientName":"STRING","accountType":"STRING","customerNumber":"LONG","accountNumber":"LONG","hasInsurance":"BOOLEAN"},"required":["balance","clientName","accountType","customerNumber","accountNumber","hasInsurance"]}

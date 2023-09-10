@@ -23,7 +23,7 @@ public class DocumentController {
                                  @RequestBody JSONObject document,
                                  @RequestHeader("username") String username,
                                  @RequestHeader("password") String token) {
-        if (authenticationService.isAdmin(username, token)) {
+        if (!authenticationService.isAdmin(username, token)) {
             return "User is not authorized";
         }
         FileService.setDatabaseDirectory(dbName);
@@ -37,7 +37,7 @@ public class DocumentController {
                                  @RequestParam("doc_id") String documentId,
                                  @RequestHeader("username") String username,
                                  @RequestHeader("password") String token) {
-        if (authenticationService.isAdmin(username, token)) {
+        if (!authenticationService.isAdmin(username, token)) {
             return "User is not authorized";
         }
         FileService.setDatabaseDirectory(dbName);
@@ -53,7 +53,7 @@ public class DocumentController {
                                    @RequestHeader("newPropertyValue") String newPropertyValue,
                                    @RequestHeader("username") String username,
                                    @RequestHeader("password") String token) {
-        if(authenticationService.isAdmin(username, token)){
+        if(!authenticationService.isAdmin(username, token)){
             return "User is not authorized";
         }
         FileService.setDatabaseDirectory(dbName);
