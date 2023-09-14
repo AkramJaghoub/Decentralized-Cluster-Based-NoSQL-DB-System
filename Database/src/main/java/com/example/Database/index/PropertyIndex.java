@@ -3,21 +3,29 @@ package com.example.Database.index;
 import com.example.Database.index.BPlusTree.BPlusTree;
 
 public class PropertyIndex {
-    private final BPlusTree<String, Integer> bPlusTree;
+    private BPlusTree<String, String> bPlusTree;
 
     public PropertyIndex() {
         this.bPlusTree = new BPlusTree<>();
     }
 
-    public void insert(String propertyName, int index) {
-        bPlusTree.insert(propertyName, index);
+    public BPlusTree<String, String> getBPlusTree() {
+        return bPlusTree;
     }
 
-    public void delete(String propertyName) {
-        bPlusTree.delete(propertyName);
+    public void setBPlusTree(BPlusTree<String, String> bPlusTree) {
+        this.bPlusTree = bPlusTree;
     }
 
-    public Integer search(String propertyName) {
-        return bPlusTree.search(propertyName);
+    public void insert(String propertyValue, String index) {
+        bPlusTree.insert(propertyValue, index);
+    }
+
+    public void delete(String propertyValue) {
+        bPlusTree.delete(propertyValue);
+    }
+
+    public String search(String propertyValue) {
+        return bPlusTree.search(propertyValue);
     }
 }

@@ -19,6 +19,8 @@ public class InMemoryDatabase {
         return instance;
     }
 
+
+
     public void createDatabase(String databaseName) {
         if (databaseName == null || databaseName.trim().isEmpty()) {
             throw new IllegalArgumentException("Database name cannot be null or empty.");
@@ -35,7 +37,6 @@ public class InMemoryDatabase {
         if (databaseName == null || databaseName.trim().isEmpty()) {
             throw new IllegalArgumentException("Database name cannot be null or empty.");
         }
-        System.out.println(databaseName);
         return databases.computeIfAbsent(databaseName, Database::new);
     }
 

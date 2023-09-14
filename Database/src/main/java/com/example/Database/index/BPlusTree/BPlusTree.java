@@ -26,7 +26,6 @@ public class BPlusTree<TKey extends Comparable<TKey>, TValue> {
     public void insert(TKey key, TValue value) {
         LeafNode<TKey, TValue> leaf = this.findLeafNodeShouldContainKey(key);
         leaf.insertKey(key, value);
-
         if (leaf.isNodeOverflowing()) {
             Node<TKey> n = leaf.handleOverflow();
             if (n != null)

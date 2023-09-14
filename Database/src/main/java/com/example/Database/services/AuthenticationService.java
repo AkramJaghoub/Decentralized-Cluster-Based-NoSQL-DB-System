@@ -21,15 +21,16 @@ public class AuthenticationService {
             String fileUsername = (String) jsonObject.get("username");
             String filePassword = (String) jsonObject.get("password");
             if (fileUsername.equals(username) && filePassword.equals(password)) {
-                return true;
+                return false;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return false;
+        return true;
     }
 
-    public String verifyCredentials(String username, String password) {
+
+        public String verifyCredentials(String username, String password) {
         JSONParser parser = new JSONParser();
         String path = FileService.adminJsonFilePath();
         try {

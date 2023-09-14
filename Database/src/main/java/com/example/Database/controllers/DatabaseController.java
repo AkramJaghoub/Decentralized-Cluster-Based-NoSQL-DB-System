@@ -23,7 +23,7 @@ public class DatabaseController {
                                  @RequestHeader("username") String username,
                                  @RequestHeader("password") String password) {
 
-        if(!authenticationService.isAdmin(username, password)){
+        if(authenticationService.isAdmin(username, password)){
             return "User is not authorized";
         }
         FileService.setDatabaseDirectory(dbName);
@@ -35,7 +35,7 @@ public class DatabaseController {
     public String deleteDatabase(@PathVariable("db_name") String dbName,
                                  @RequestHeader("username") String username,
                                  @RequestHeader("password") String password) {
-        if (!authenticationService.isAdmin(username, password)) {
+        if(authenticationService.isAdmin(username, password)){
             return "User is not authorized";
         }
         FileService.setDatabaseDirectory(dbName);
@@ -47,13 +47,10 @@ public class DatabaseController {
     public ResponseEntity<List<String>> fetchExistingDatabases(
             @RequestHeader("username") String username,
             @RequestHeader("password") String password) {
-        if (!authenticationService.isAdmin(username, password)) {
+        if (authenticationService.isAdmin(username, password)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         List<String> databases = queryManager.readDatabases();
-        if (databases.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
         return new ResponseEntity<>(databases, HttpStatus.OK);
     }
 }

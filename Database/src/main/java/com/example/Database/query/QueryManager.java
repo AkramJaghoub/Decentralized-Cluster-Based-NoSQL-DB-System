@@ -1,13 +1,19 @@
 package com.example.Database.query;
 
 import com.example.Database.model.ApiResponse;
+import com.example.Database.model.Document;
 import com.example.Database.query.Command.QueryCommand;
 import com.example.Database.query.Command.Factory.QueryObjectFactory;
+import lombok.SneakyThrows;
+import org.json.simple.JSONArray;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.json.simple.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -94,7 +100,34 @@ public class QueryManager {
         return execute(jsonObject);
     }
 
-    public ApiResponse updateProperty(String databaseName,String collectionName, String documentId, String propertyName, String newPropertyValue) {
+    public List<JSONObject> readDocuments(String databaseName, String collectionName) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("queryType", QueryType.READ_DOCUMENTS.toString());
+        jsonObject.put("databaseName", databaseName);
+        jsonObject.put("collectionName", collectionName);
+        ApiResponse response = execute(jsonObject);
+        String jsonInput = response.getMessage();
+        System.out.println("JSON Input: " + jsonInput);
+        if (response != null) {
+            JSONParser jsonParser = new JSONParser();
+            try {
+                JSONArray documentsArray = (JSONArray) jsonParser.parse(response.getMessage());
+                List<JSONObject> documentList = new ArrayList<>();
+                for (Object documentObj : documentsArray) {
+                    // Create JSONObject objects from JSON and add them to the list
+                    JSONObject document = (JSONObject) documentObj;
+                    documentList.add(document);
+                }
+                return documentList;
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
+        return Collections.emptyList();
+    }
+
+
+    public ApiResponse updateProperty(String databaseName,String collectionName, String documentId, String propertyName, Object newPropertyValue) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("queryType", QueryType.UPDATE_INDEX.toString());
         jsonObject.put("databaseName", databaseName);

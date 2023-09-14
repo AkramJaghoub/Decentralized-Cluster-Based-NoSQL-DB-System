@@ -1,48 +1,36 @@
 package com.example.Database.index;
 
 import com.example.Database.file.FileService;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Component;
-
+import org.springframework.stereotype.Service;
 import java.io.*;
 import java.util.*;
-import static com.example.Database.file.FileService.getIndexFilePath;
+import java.util.concurrent.ConcurrentHashMap;
 
 
-@Component
-@Lazy
+@Service
 public class IndexManager {
-    private final Map<String, Index> indexMap = new HashMap<>();
-    private final Map<String, PropertyIndex> propertyIndexMap = new HashMap<>();
 
-    public IndexManager() {}
+    private final Map<String, Index> indexMap = new ConcurrentHashMap<>();
+    private final Map<String, PropertyIndex> propertyIndexMap = new ConcurrentHashMap<>();
 
-    public void initializeIndexes() {
-        loadAllIndexes();
-    }
-
-    private void loadAllIndexes() {
+    public void loadAllIndexes() {
+        System.out.println("Loading all indexes...");
         File databasePath = new File(FileService.getDatabasePath().toURI());
         File indexesDirectory = new File(databasePath, "indexes");
-        if (!indexesDirectory.exists()) {
-            boolean dirCreated = indexesDirectory.mkdirs();
-            if (!dirCreated) {
-                System.out.println("Failed to create 'indexes' directory");
-                return;
-            }
-        }
-        String[] collectionNames = indexesDirectory.list();
-        if (collectionNames != null) {
-            for (String collectionName : collectionNames) {
-                String cleanCollectionName = collectionName.endsWith("_index.txt") ? collectionName.substring(0, collectionName.length() - 10) : collectionName;
-                String indexPath = getIndexFilePath(cleanCollectionName);
-                Index index = new Index();
-                indexMap.put(cleanCollectionName, index);
-                if (new File(indexPath).exists()) {
-                    System.out.println("File " + indexPath + " Loading...");
-                    loadIndexFromFile(indexPath, index);
-                } else {
-                    System.out.println("File doesn't exist.");
+        FileService.createDirectoryIfNotExist(indexesDirectory);
+        String[] collectionDirectories = indexesDirectory.list();
+        if (collectionDirectories != null) {
+            for (String collectionDir : collectionDirectories) {
+                File currentDir = new File(indexesDirectory, collectionDir);
+                String[] filesInDir = currentDir.list();
+                if (filesInDir != null) {
+                    for (String indexFile : filesInDir) {
+                        if (FileService.isPropertyIndexFile(indexFile)) {
+                            loadPropertyIndexForCollection(indexFile);
+                        } else if (FileService.isIndexFile(indexFile)) {
+                            loadIndexForCollection(indexFile);
+                        }
+                    }
                 }
             }
         } else {
@@ -50,22 +38,38 @@ public class IndexManager {
         }
     }
 
+    private void loadIndexForCollection(String collectionFileName) {
+        String cleanCollectionName = collectionFileName.substring(0, collectionFileName.length() - 10);
+        String indexPath = FileService.getIndexFilePath(cleanCollectionName);
+        Index index = new Index();
+        indexMap.put(cleanCollectionName, index);
+        loadFromFile(indexPath, index);
+    }
 
-    private void loadIndexFromFile(String path, Index index) {
-        File file = new File(path);
-        if (!file.exists()) {
+    private void loadPropertyIndexForCollection(String collectionFileName) {
+        String cleanCollectionName = collectionFileName.substring(0, collectionFileName.length() - 17);
+        String[] split = cleanCollectionName.split("_");
+        String derivedCollectionName = split[0];
+        String property = split[1];
+        String propertyIndexPath = FileService.getPropertyIndexFilePath(derivedCollectionName, property);
+        PropertyIndex propertyIndex = new PropertyIndex();
+        propertyIndexMap.put(derivedCollectionName + "_" + property, propertyIndex);
+        loadFromFile(propertyIndexPath, propertyIndex);
+    }
+
+    private void loadFromFile(String path, Object index) {
+        if (!FileService.isFileExists(path)) {
+            System.err.println("File " + path + " doesn't exist.");
             return;
         }
-        try (Scanner scanner = new Scanner(file)) {
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine();
-                String[] parts = line.split(",");
-                int key = Integer.parseInt(parts[0]);
-                String value = parts[1];
-                index.insert(key, value);
+        System.out.println("File " + path + " Loading...");
+        Map<String, String> indexData = FileService.readIndexFile(path);
+        for (Map.Entry<String, String> entry : indexData.entrySet()) {
+            if(index instanceof Index) {
+                ((Index) index).insert(entry.getKey(), entry.getValue());
+            } else if(index instanceof PropertyIndex) {
+                ((PropertyIndex) index).insert(entry.getKey(), entry.getValue());
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         }
     }
 
@@ -86,50 +90,26 @@ public class IndexManager {
     }
 
     public void insertIntoIndex(String collectionName, String documentId, int index) {
-        int hashcode = documentId.hashCode();
-        String existingValue = getIndex(collectionName).search(hashcode);
+        String existingValue = getIndex(collectionName).search(documentId);
         if (existingValue == null) {
-            getIndex(collectionName).insert(hashcode, String.valueOf(index));
-            appendToFile(collectionName, hashcode, index);
-        }
-    }
-
-    private void appendToFile(String collectionName, int hashcode, int index) {
-        String indexPath = getIndexFilePath(collectionName);
-        File indexesDirectory = new File(FileService.getDatabasePath() + "/indexes");
-        if (!indexesDirectory.exists()) {
-            if (!indexesDirectory.mkdirs()) {
-                System.err.println("Failed to create 'indexes' directory.");
-                return;  // Return if the directory creation fails
-            }
-        }
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(indexPath, true))) {
-            writer.write(hashcode + "," + index);
-            writer.newLine();
-        } catch (IOException e) {
-            e.printStackTrace();
+            getIndex(collectionName).insert(documentId, String.valueOf(index));
+            FileService.appendToIndexFile(FileService.getIndexFilePath(collectionName), documentId, String.valueOf(index));
         }
     }
 
     public void deleteFromIndex(String collectionName, String documentId) {
-        int hashcode = documentId.hashCode();
         Index index = getIndex(collectionName);
-        boolean documentFound = false;
         int deletedIndex = -1;
-        List<Map.Entry<Integer, String>> allEntries = new ArrayList<>(index.getBPlusTree().getAllEntries());
-        for (Map.Entry<Integer, String> entry : allEntries) {
-            if (entry.getKey() == hashcode) {
-                documentFound = true;
-                deletedIndex = Integer.parseInt(entry.getValue());
-                index.delete(hashcode);
-                break;
-            }
-        }
-        if (!documentFound) {
+        List<Map.Entry<String, String>> allEntries = new ArrayList<>(index.getBPlusTree().getAllEntries());
+        String indexValue = index.search(documentId);
+        if (indexValue != null) {
+            deletedIndex = Integer.parseInt(indexValue);
+        } else {
             throw new IllegalArgumentException("Document not found in the index.");
         }
-        Map<Integer, String> updatedEntries = new HashMap<>();
-        for (Map.Entry<Integer, String> entry : allEntries) {
+        index.delete(documentId);
+        Map<String, String> updatedEntries = new HashMap<>();
+        for (Map.Entry<String, String> entry : allEntries) {
             int currentIndex = Integer.parseInt(entry.getValue());
             if (currentIndex > deletedIndex) {
                 updatedEntries.put(entry.getKey(), String.valueOf(currentIndex - 1));
@@ -137,39 +117,17 @@ public class IndexManager {
                 updatedEntries.put(entry.getKey(), String.valueOf(currentIndex));
             }
         }
-        updatedEntries.remove(hashcode);
+        updatedEntries.remove(documentId);
         index.getBPlusTree().clearTree();
-        for (Map.Entry<Integer, String> entry : updatedEntries.entrySet()) {
+        for (Map.Entry<String, String> entry : updatedEntries.entrySet()) {
             index.insert(entry.getKey(), entry.getValue());
         }
-        rewriteIndexFile(collectionName, index);
-    }
-
-    private void rewriteIndexFile(String collectionName, Index index) {
-        File file = new File(getIndexFilePath(collectionName));
-        if (file.exists()) {
-            file.delete();
-            try {
-                file.createNewFile();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        }
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-            for (Map.Entry<Integer, String> entry : index.getBPlusTree().getAllEntries()) {
-                writer.write(entry.getKey() + "," + entry.getValue());
-                writer.newLine();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        FileService.rewriteIndexFile(collectionName, index);
     }
 
     public String searchInIndex(String collectionName, String documentId) {
-        int hashcode = documentId.hashCode();
-        return getIndex(collectionName).search(hashcode);
+        return getIndex(collectionName).search(documentId);
     }
-
 
     public void createPropertyIndex(String collectionName, String propertyName) {
         String propertyIndexKey = collectionName + "_" + propertyName;
@@ -179,23 +137,40 @@ public class IndexManager {
         }
     }
 
-    public void insertIntoPropertyIndex(String collectionName, String propertyName, int propertyHashCode, int documentIndex) {
+    public void insertIntoPropertyIndex(String collectionName, String propertyName, String propertyValue, String documentId) {
         String propertyIndexKey = collectionName + "_" + propertyName;
-        PropertyIndex indexObj = propertyIndexMap.get(propertyIndexKey);
-        if (indexObj == null) {
+        PropertyIndex propertyIndex = propertyIndexMap.get(propertyIndexKey);
+        if (propertyIndex == null) {
             throw new IllegalArgumentException("Property Index does not exist.");
         }
-        indexObj.insert(Integer.toString(propertyHashCode), documentIndex);
+        String existingDocumentId = propertyIndex.search(propertyValue); // Convert propertyValue to String
+        if (existingDocumentId == null) {
+            propertyIndex.insert(propertyValue, documentId); // Convert propertyValue to String
+            FileService.appendToIndexFile(FileService.getPropertyIndexFilePath(collectionName, propertyName), propertyValue, documentId); // Convert propertyValue to String
+        }
     }
 
-//    public Integer searchInPropertyIndex(String collectionName, String propertyName, int propertyHashCode) {
-//        String propertyIndexKey = collectionName + "_" + propertyName;
-//        PropertyIndex index = propertyIndexMap.get(propertyIndexKey);
-//        if (index == null) {
-//            throw new IllegalArgumentException("Property Index does not exist.");
-//        }
-//        return index.search(Integer.toString(propertyHashCode));
-//    }
+    public String searchInPropertyIndex(String collectionName, String propertyName, String propertyValue) {
+        String propertyIndexKey = collectionName + "_" + propertyName;
+        PropertyIndex propertyIndex = propertyIndexMap.get(propertyIndexKey);
+        if (propertyIndex  == null) {
+            throw new IllegalArgumentException("Property Index does not exist.");
+        }
+        System.out.println("searching for property value " + propertyValue + " property name " + propertyName  + " collection " + collectionName);
+        return propertyIndex.search(propertyValue);
+    }
+
+    public void deleteFromPropertyIndex(String collectionName, String propertyName, String propertyValue) {
+        String propertyIndexKey = collectionName + "_" + propertyName;
+        PropertyIndex propertyIndex = propertyIndexMap.get(propertyIndexKey);
+        if (propertyIndex == null) {
+            throw new IllegalArgumentException("Property Index does not exist.");
+        }
+        propertyIndex.delete(propertyValue);
+        System.out.println("this is deleted property value " + propertyValue + " property name " + propertyName  + " collection " + collectionName);
+        FileService.rewritePropertyIndexFile(FileService.getPropertyIndexFilePath(collectionName, propertyName), propertyIndex);
+    }
+
 
     public boolean propertyIndexExists(String collectionName, String propertyName) {
         String propertyIndexKey = collectionName + "_" + propertyName;
@@ -203,6 +178,6 @@ public class IndexManager {
     }
 
     public boolean indexExists(String collectionName) {
-        return !indexMap.containsKey(collectionName);
+        return indexMap.containsKey(collectionName);
     }
 }

@@ -10,6 +10,7 @@ public class Document {
     private String propertyName;
     private Object propertyValue;
 
+
     public Document(JSONObject data) {
         this.data = data;
     }

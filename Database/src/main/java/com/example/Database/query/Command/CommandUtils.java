@@ -41,8 +41,8 @@ public class CommandUtils {
         return indexProperty.orElseThrow(PropertyNameNotFound::new);
     }
 
-    public static String getNewPropertyValue(JSONObject commandJson) throws NewPropertyValueNotFound {
-        Optional<String> indexProperty = Optional.ofNullable((String) commandJson.get("newPropertyValue"));
+    public static Object getNewPropertyValue(JSONObject commandJson) throws NewPropertyValueNotFound {
+        Optional<Object> indexProperty = Optional.ofNullable(commandJson.get("newPropertyValue"));
         return indexProperty.orElseThrow(NewPropertyValueNotFound::new);
     }
 

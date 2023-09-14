@@ -21,6 +21,7 @@ public class SchemaValidator {
             JsonSchemaFactory jsonSchemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V201909);
             JsonSchema jsonSchema = jsonSchemaFactory.getSchema(schema.toString());
             ObjectMapper objectMapper = new ObjectMapper();
+            System.out.println(json);
             JsonNode jsonNode = objectMapper.readTree(json);
             Set<ValidationMessage> validationMessageSet = jsonSchema.validate(jsonNode);
             return validationMessageSet.isEmpty();

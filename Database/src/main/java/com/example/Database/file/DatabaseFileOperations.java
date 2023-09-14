@@ -1,21 +1,19 @@
 package com.example.Database.file;
 
 import com.example.Database.index.IndexManager;
+import com.example.Database.index.PropertyIndex;
 import com.example.Database.model.ApiResponse;
+import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
-@Component
 public final class DatabaseFileOperations {
 
     private DatabaseFileOperations() {}
@@ -23,13 +21,10 @@ public final class DatabaseFileOperations {
     public static ApiResponse createDatabase() {
         File dbDirectory = FileService.getDatabasePath();
         if (FileService.isDirectoryExists(dbDirectory)) {
-            if (dbDirectory.mkdir()) {
-                File schemasDirectory = new File(dbDirectory + "/schemas/");
-                schemasDirectory.mkdirs();
-                return new ApiResponse("database added successfully");
-            } else {
-                return new ApiResponse("Failed to create database.");
-            }
+            FileService.createDirectoryIfNotExist(dbDirectory);
+            File schemasDirectory = new File(dbDirectory + "/schemas/");
+            FileService.createDirectoryIfNotExist(schemasDirectory);
+            return new ApiResponse("database added successfully");
         } else {
             return new ApiResponse("Database already exists.");
         }
@@ -50,7 +45,7 @@ public final class DatabaseFileOperations {
 
     public static List<String> readDatabases() {
         File rootDirectory = FileService.getRootFile();
-        if (!rootDirectory.exists()) {
+        if (FileService.isDirectoryExists(rootDirectory)) {
             return Collections.emptyList();
         }
         String[] directories = rootDirectory.list((current, name) -> new File(current, name).isDirectory());
@@ -67,7 +62,7 @@ public final class DatabaseFileOperations {
         }
         File collectionFile = FileService.getCollectionFile(collectionName);
         File schemaFile = FileService.getSchemaPath(collectionName);
-        if (collectionFile.exists()) {
+        if (FileService.isFileExists(collectionFile.getPath())) {
             return new ApiResponse("Collection already exists.");
         }
         try {
@@ -79,6 +74,7 @@ public final class DatabaseFileOperations {
         }
     }
 
+    @SneakyThrows
     public static ApiResponse deleteCollection(String collectionName) {
         File databaseFile = FileService.getDatabasePath();
         if (FileService.isDirectoryExists(databaseFile)) {
@@ -86,21 +82,36 @@ public final class DatabaseFileOperations {
         }
         File collectionFile = FileService.getCollectionFile(collectionName);
         File schemaFile = FileService.getSchemaPath(collectionName);
-        if (!collectionFile.exists()) {
-            return new ApiResponse("Collection not found.");
+        File indexDirectory = new File(FileService.getDatabasePath() + "/indexes/" + collectionName + "_indexes");
+        if (!FileService.isFileExists(collectionFile.getPath()) || !FileService.isFileExists(schemaFile.getPath())) {
+            return new ApiResponse("Collection or schema do not exist.");
         }
         boolean isCollectionDeleted = collectionFile.delete();
         boolean isSchemaDeleted = schemaFile.delete();
+        deleteDirectoryRecursively(indexDirectory);
         if (isCollectionDeleted && isSchemaDeleted) {
-            return new ApiResponse("Collection has been successfully deleted");
+            return new ApiResponse("Collection, and it's schema and indexes have been successfully deleted");
         } else {
-            return new ApiResponse("Failed to delete collection or associated schema.");
+            return new ApiResponse("Failed to delete collection, associated schema, or index.");
+        }
+    }
+
+    public static void deleteDirectoryRecursively(File directory) {
+        if (directory.exists()) {
+            for (File file : Objects.requireNonNull(directory.listFiles())) {
+                if (file.isDirectory()) {
+                    deleteDirectoryRecursively(file);
+                } else {
+                    file.delete();
+                }
+            }
+            directory.delete();
         }
     }
 
     public static List<String> readCollections() {
         File dbDirectory = FileService.getDatabasePath();
-        if (!dbDirectory.exists() || !dbDirectory.isDirectory()) {
+        if (FileService.isDirectoryExists(dbDirectory)) {
             return Collections.emptyList();
         }
         File[] collectionFiles = dbDirectory.listFiles((dir, name) -> name.endsWith(".json"));
@@ -135,7 +146,7 @@ public final class DatabaseFileOperations {
     }
 
     @SuppressWarnings("unchecked")
-    private static int getDocumentIndex(String collectionName, String documentId, IndexManager indexManager, JSONArray jsonArray) throws Exception {
+    private static int getDocumentIndex(String collectionName, String documentId, JSONArray jsonArray, IndexManager indexManager) throws Exception {
         File collectionFile = FileService.getCollectionFile(collectionName);
         JSONArray tempArray = FileService.readJsonArrayFile(collectionFile);
         if (tempArray == null) {
@@ -149,21 +160,52 @@ public final class DatabaseFileOperations {
         return Integer.parseInt(searchResult);
     }
 
-    public static ApiResponse deleteDocument(String collectionName, String documentId, IndexManager indexManager) {
+    public static Map<String, Integer> readDocumentIndexesFromFile(String collectionName) {
+        String indexFilePath = FileService.getIndexFilePath(collectionName);
+        Map<String, Integer> documentIdIndexMap = new HashMap<>();
+        try {
+            if (!FileService.isFileExists(indexFilePath)) {
+                return documentIdIndexMap;
+            }
+            List<String> lines = Files.readAllLines(Paths.get(indexFilePath), StandardCharsets.UTF_8);
+            for (String line : lines) {
+                String[] parts = line.split(",");
+                if (parts.length == 2) {
+                    String documentId = parts[0].trim();
+                    int index = Integer.parseInt(parts[1].trim());
+                    documentIdIndexMap.put(documentId, index);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return documentIdIndexMap;
+    }
+
+    public static JSONObject readDocumentFromFile(String collectionName, int index) {
+        File collectionFile = FileService.getCollectionFile(collectionName);
+        JSONArray jsonArray = FileService.readJsonArrayFile(collectionFile);
+        if (jsonArray != null && index >= 0 && index < jsonArray.size()) {
+            return (JSONObject) jsonArray.get(index);
+        }
+        return null;
+    }
+
+
+    public static JSONObject deleteDocument(String collectionName, String documentId, IndexManager indexManager) {
         try {
             JSONArray jsonArray = new JSONArray();
-            int index = getDocumentIndex(collectionName, documentId, indexManager, jsonArray);
-            if(index < 0) {
-                return new ApiResponse("Document with id " + documentId + " not found in " + collectionName);
+            int index = getDocumentIndex(collectionName, documentId, jsonArray, indexManager);
+            if (index < 0) {
+                return null;
             }
+            JSONObject removedDocument = (JSONObject) jsonArray.get(index);
             jsonArray.remove(index);
             File collectionFile = FileService.getCollectionFile(collectionName);
             boolean writeStatus = FileService.writeJsonArrayFile(collectionFile, jsonArray);
-            return writeStatus ?
-                    new ApiResponse("Document deleted successfully from " + collectionName) :
-                    new ApiResponse("Failed to delete document from " + collectionName);
+            return writeStatus ? removedDocument : null;
         } catch (Exception e) {
-            return new ApiResponse(e.getMessage());
+            return null;
         }
     }
 
@@ -171,14 +213,22 @@ public final class DatabaseFileOperations {
     public static ApiResponse updateDocumentProperty(String collectionName, String documentId, String propertyName, Object newValue, IndexManager indexManager) {
         try {
             JSONArray jsonArray = new JSONArray();
-            int index = getDocumentIndex(collectionName, documentId, indexManager, jsonArray);
-            if(index < 0) {
+            int index = getDocumentIndex(collectionName, documentId, jsonArray, indexManager);
+            if (index < 0) {
                 return new ApiResponse("Document with id " + documentId + " not found in " + collectionName);
             }
             JSONObject documentData = (JSONObject) jsonArray.get(index);
+            Object oldValue = documentData.get(propertyName);
+            if (Objects.equals(oldValue, newValue)) {
+                return new ApiResponse("No changes needed. Document with id " + documentId + " in " + collectionName + " already has the same value for property " + propertyName);
+            }
             documentData.put(propertyName, newValue);
             File collectionFile = FileService.getCollectionFile(collectionName);
             boolean writeStatus = FileService.writeJsonArrayFile(collectionFile, jsonArray);
+            indexManager.insertIntoPropertyIndex(collectionName, propertyName, newValue.toString(), documentId);
+            if (oldValue != null) {
+                indexManager.deleteFromPropertyIndex(collectionName, propertyName, oldValue.toString());
+            }
             return writeStatus ?
                     new ApiResponse("Document with id " + documentId + " updated successfully in " + collectionName) :
                     new ApiResponse("Failed to update document with id " + documentId + " in " + collectionName);

@@ -28,7 +28,7 @@ public class UpdateIndexCommand implements QueryCommand {
             Collection collection = CommandUtils.getCollection(commandJson);
             String documentId = CommandUtils.getDocumentId(commandJson);
             String propertyName = CommandUtils.getPropertyName(commandJson);
-            String newPropertyValue = CommandUtils.getNewPropertyValue(commandJson);
+            Object newPropertyValue = CommandUtils.getNewPropertyValue(commandJson);
             Document document = new Document(documentId);
             document.setPropertyName(propertyName);
             document.setPropertyValue(newPropertyValue);

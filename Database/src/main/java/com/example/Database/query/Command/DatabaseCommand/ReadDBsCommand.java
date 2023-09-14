@@ -25,7 +25,7 @@ public class ReadDBsCommand implements QueryCommand {
         try {
             List<String> databases = databaseService.readDBs();
             if (databases.isEmpty()) {
-                return new ApiResponse("No databases found");
+                return new ApiResponse("");
             } else {
                 return new ApiResponse(String.join(", ", databases));
             }

@@ -1,19 +1,17 @@
 package com.example.Database.file;
 
+import com.example.Database.index.Index;
+import com.example.Database.index.PropertyIndex;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.springframework.stereotype.Service;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.*;
 
-@Service
 public final class FileService {
     private static final String FILE_PATH = "/app/data/databases";
     private static String DB_DIRECTORY;
@@ -30,6 +28,37 @@ public final class FileService {
             System.out.println(e.getMessage());
         }
         return new JSONObject();
+    }
+
+
+    public static Map<String, String> readIndexFile(String path) {
+        System.out.println(path);
+        File file = new File(path);
+        Map<String, String> indexData = new HashMap<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                int separatorPosition = line.indexOf(",");
+                if (separatorPosition == -1) continue;
+                String key = line.substring(0, separatorPosition).trim();
+                String value = line.substring(separatorPosition + 1).trim();
+                indexData.put(key, value);
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading the file.");
+            e.printStackTrace();
+        }
+        return indexData;
+    }
+
+
+    public static void createDirectoryIfNotExist(File file){
+        if (!file.exists()) {
+            boolean dirCreated = file.mkdirs();
+            if (!dirCreated) {
+                System.err.println("Failed to create " + file.getName());
+            }
+        }
     }
 
     public static File getRootFile(){
@@ -49,11 +78,28 @@ public final class FileService {
     }
 
     public static String getIndexFilePath(String collectionName) {
-        return DB_DIRECTORY + "/indexes/" +  collectionName + "_index.txt";
+        String dirPath = DB_DIRECTORY + "/indexes/" + collectionName + "_indexes";
+        createDirectoryIfNotExist(new File(dirPath));
+        return dirPath + "/" + collectionName + "_index.txt";
     }
+
+    public static String getPropertyIndexFilePath(String collectionName, String propertyName) {
+        String dirPath = DB_DIRECTORY + "/indexes/" + collectionName + "_indexes";
+        createDirectoryIfNotExist(new File(dirPath));
+        return dirPath + "/" + collectionName + "_" + propertyName + "_property_index.txt";
+    }
+
 
     public static void setDatabaseDirectory(String dbName) {
         DB_DIRECTORY = FILE_PATH + "/" + dbName;
+    }
+
+    public static boolean isIndexFile(String fileName) {
+        return fileName.endsWith("_index.txt");
+    }
+
+    public static boolean isPropertyIndexFile(String fileName) {
+        return fileName.endsWith("_property_index.txt");
     }
 
     public static String adminJsonFilePath(){
@@ -77,6 +123,58 @@ public final class FileService {
             e.printStackTrace();
             System.err.println("Error while reading JSON file: " + e.getMessage());
             return null;
+        }
+    }
+
+    public static void appendToIndexFile(String path, Object key, String value) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path, true))) {
+            writer.write(key + "," + value);
+            writer.newLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void rewriteIndexFile(String collectionName, Index index) {
+        File file = new File(getIndexFilePath(collectionName));
+        List<Map.Entry<String, String>> allEntries = index.getBPlusTree().getAllEntries();
+        if (allEntries.isEmpty()) {
+            if (FileService.isFileExists(file.getPath())) {
+                file.delete();
+            }
+            return;
+        }
+        try {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+                for (Map.Entry<String, String> entry : allEntries) {
+                    writer.write(entry.getKey() + "," + entry.getValue());
+                    writer.newLine();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void rewritePropertyIndexFile(String path, PropertyIndex propertyIndex) {
+        File file = new File(path);
+        List<Map.Entry<String, String>> allEntries = propertyIndex.getBPlusTree().getAllEntries();
+        if (allEntries.isEmpty()) {
+            if (FileService.isFileExists(file.getPath())) {
+                file.delete();
+            }
+            return;
+        }
+        try {
+            file.createNewFile();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+                for (Map.Entry<String, String> entry : allEntries) {
+                    writer.write(entry.getKey() + "," + entry.getValue());
+                    writer.newLine();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
