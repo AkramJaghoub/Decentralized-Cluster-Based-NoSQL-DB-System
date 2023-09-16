@@ -1,5 +1,6 @@
 package com.example.BankingSystem.services;
 
+import jakarta.servlet.ServletOutputStream;
 import org.springframework.stereotype.Service;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.*;
@@ -27,6 +28,7 @@ public class CollectionService {
 
     @SneakyThrows
     public String deleteCollection(String dbName, String collectionName, HttpSession session) {
+        System.out.println("sssssssssssssssssssssssssssssssssssssseeeeeeeeeeeewwwwwwwwwwwwwwwwwqqqqqqqqqqqqqqq");
         Admin admin = (Admin) session.getAttribute("login");
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -35,6 +37,7 @@ public class CollectionService {
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         String url = "http://worker1:9000/api/" + dbName + "/deleteCol/" + collectionName;
         ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.DELETE, requestEntity, String.class);
+        System.out.println(responseEntity.getBody());
         return responseEntity.getBody();
     }
 
@@ -49,6 +52,7 @@ public class CollectionService {
         String url = "http://worker1:9000/api/fetchExistingCollections/" + dbName;
         ResponseEntity<List<String>> responseEntity = restTemplate.exchange(url, HttpMethod.GET, requestEntity, new ParameterizedTypeReference<>() {
         });
+        System.out.println(responseEntity.getBody());
         return responseEntity.getBody();
     }
 

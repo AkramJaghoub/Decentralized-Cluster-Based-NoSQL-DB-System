@@ -10,6 +10,7 @@ import com.example.Database.schema.SchemaValidator;
 import com.example.Database.schema.datatype.DataTypeUtil;
 import org.json.simple.JSONArray;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -47,7 +48,7 @@ public class DocumentService {
                 }
                 String existingDocumentId = indexManager.searchInPropertyIndex(collectionName, "accountNumber", accountNumber);
                 if (existingDocumentId != null) {
-                    return new ApiResponse("An account with the same account number already exists.");
+                    return new ApiResponse("An account with the same account number already exists.", HttpStatus.BAD_REQUEST);
                 }
             }
             if (jsonData.containsKey("password")) {
@@ -79,7 +80,7 @@ public class DocumentService {
                 }
                 return response;
             } else {
-                return new ApiResponse("Document does not match the schema for " + collectionName);
+                return new ApiResponse("Document does not match the schema for " + collectionName, HttpStatus.BAD_REQUEST);
             }
         } finally {
             collection.getDocumentLock().unlock();
@@ -133,9 +134,9 @@ public class DocumentService {
                         indexManager.deleteFromPropertyIndex(collectionName, propertyName, propertyValue);
                     }
                 }
-                return new ApiResponse("Document deleted successfully from " + collectionName);
+                return new ApiResponse("Document deleted successfully from " + collectionName, HttpStatus.OK);
             } else {
-                return new ApiResponse("Failed to delete document from " + collectionName);
+                return new ApiResponse("Failed to delete document from " + collectionName, HttpStatus.BAD_REQUEST);
             }
         } finally {
             collection.getDocumentLock().unlock();

@@ -37,7 +37,7 @@ public class DatabaseController {
         }
     }
 
-    @PostMapping("/deleteDB")
+    @DeleteMapping("/deleteDB")
     public ResponseEntity<?> deleteDatabase(@RequestParam("db_name") String dbName,
                                             HttpSession session) {
         Admin login = (Admin) session.getAttribute("login");
@@ -65,6 +65,10 @@ public class DatabaseController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header("Location", "/login-page").body(Collections.emptyList());
         }
         List<String> databaseNames = databaseService.getAllDatabases(session);
-        return ResponseEntity.ok(databaseNames);
+        if (databaseNames.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.ok(databaseNames);
+        }
     }
 }

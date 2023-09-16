@@ -9,7 +9,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
     <style>
-        .icon-btn, .add-btn, .collection-icons {
+        .icon-btn,
+        .add-btn,
+        .collection-icons {
             background-color: transparent;
             color: gray;
             border: none;
@@ -17,17 +19,20 @@
             transition: 0.3s all;
         }
 
-        .icon-btn:hover, .add-btn:hover, .collection-icons:hover {
+        .icon-btn:hover,
+        .add-btn:hover,
+        .collection-icons:hover {
             background-color: lightgray;
             border-radius: 50%;
             color: black;
         }
 
-        .icon-btn:focus, .add-btn:focus, .collection-icons:focus {
+        .icon-btn:focus,
+        .add-btn:focus,
+        .collection-icons:focus {
             color: black;
             outline: none;
         }
-
         .expand-btn i {
             color: black;
         }
@@ -52,8 +57,14 @@
         }
 
         .collection-container {
-            display: none;
+            display: flex;
+            flex-direction: column; /* Use flex to fit the border to content */
             margin-left: 40px; /* Add margin to indent collections */
+        }
+
+        .collection-container.newly-added {
+            background-color: #f0f8ff; /* Change this to your desired background color */
+            transition: background-color 1s ease-in-out; /* Adjust transition properties as needed */
         }
 
         .collection-item {
@@ -67,22 +78,119 @@
         }
 
         .container {
-            margin-left: 0%;
-            margin-right: 15%;
+            width: 50%;
+            margin: auto;
             border-left: 1px solid #ddd;
-            padding-left: 15px;
+            padding: 10px;
         }
 
         /* Increase the size of icons for adding and deleting databases */
-        .add-btn, .delete-btn {
+        .add-btn,
+        .delete-btn {
             font-size: 20px; /* You can adjust the size as needed */
             border-radius: 50%;
         }
+
+        .radio-group label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .newly-added {
+            background-color: #7FFF7F; /* Green background color for highlighting */
+            transition: background-color 3s; /* Transition duration set to 3 seconds */
+        }
+
+        #document-display {
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: auto;
+            overflow: auto;
+            font-size: 20px;
+        }
+
+        /* CSS for collection item highlighting */
+        .collection-item {
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+
+        .collection-item:hover {
+            background-color: #f0f0f0; /* Change to your desired highlight color */
+        }
+
+        /* Style for the content in the editor */
+        .document-container {
+            display: flex; /* Use flex to make the container expand to fit its content */
+            flex-direction: column; /* Stack child elements vertically */
+            align-items: stretch; /* Stretch child elements horizontally */
+        }
+
+
+        #document-display pre {
+            white-space: pre-wrap;
+            padding-left: 25px; /* Add left padding */
+            position: relative; /* Add relative positioning */
+        }
+
+        #document-display pre {
+            white-space: pre-wrap;
+            position: relative;
+        }
+
+        #document-display pre div {
+            background-color: #f0f0f0; /* Change to your desired highlight color */
+            padding: 0px; /* Add padding for spacing */
+            margin-bottom: 5px; /* Add margin between lines */
+        }
+
+        #document-display pre div:hover {
+            background-color: #ddd; /* Change the hover background color */
+        }
+
+        #document-display pre strong {
+            color: black; /* Set property names to black */
+            font-weight: bold; /* Make property names bold */
+        }
+
+        #document-display pre span.property-value {
+            color: cornflowerblue; /* Set values to baby blue */
+        }
+
+        #document-display {
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: auto;
+            overflow: auto;
+            font-size: 20px;
+            display: none;
+        }
+
+        #choose-collection-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .collection-item.selected {
+            background-color: #d3d3d3;
+        }
+
     </style>
 </head>
 <body>
 
 <div class="container mt-4">
+    <div id="addDbSuccessMsg" class="alert alert-success mt-3 d-none"></div>
+    <div id="deleteDatabaseSuccessMsg" class="alert alert-danger mt-3 d-none"></div>
     <div class="row justify-content-center">
         <div class="col-md-3 p-4 bg-light border-left">
             <h4>
@@ -102,14 +210,6 @@
                     <div class="collection-container">
                         <!-- Add collection items here -->
                         <div class="collection-item">
-                            <span>account1</span>
-                            <div>
-                                <button class="icon-btn delete-collection-btn"><i class="fas fa-trash-alt fa-xs"></i></button>
-                                <button class="icon-btn add-document-btn">+</button>
-                            </div>
-                        </div>
-                        <div class="collection-item">
-                            <span>account2</span>
                             <div>
                                 <button class="icon-btn delete-collection-btn"><i class="fas fa-trash-alt fa-xs"></i></button>
                                 <button class="icon-btn add-document-btn">+</button>
@@ -120,6 +220,19 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-9 p-5 bg-light">
+            <div id="choose-collection-message" class="alert alert-info d-none">Choose a collection to display its documents.</div>
+            <div class="document-container">
+                <div class="text-right">
+                    <span id="documentCount" class="mr-2"></span>
+                    <button class="btn btn-primary" id="prevDocumentBtn" style="display: none; background-color: white; color: black; border: 1px solid #ddd;"><i class="fas fa-chevron-left"></i></button>
+                    <button class="btn btn-primary" id="nextDocumentBtn" style="display: none; background-color: white; color: black; border: 1px solid #ddd;"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div id="document-display">
+                </div>
+            </div>
+        </div>
+        <div id="documentMessage" class="ml-2"></div>
     </div>
 </div>
 
@@ -145,9 +258,11 @@
     </div>
 </div>
 
+
 <!-- Collection Modal -->
 <div id="createCollectionModal" class="modal fade" tabindex="-1">
     <div class="modal-dialog">
+
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title">Create New Collection in <span id="selectedDbName"></span></h4>
@@ -161,33 +276,197 @@
                     </div>
                     <button type="submit" class="btn btn-primary">Create</button>
                 </form>
-                <div id="collectionErrorMsg" class="alert alert-danger d-none">Error message here.</div>
+                <div id="collectionExistsMsg" class="alert alert-danger d-none">Collection already exists.</div>
             </div>
         </div>
     </div>
 </div>
+
+<div id="openAccountModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Open New Account</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Account opening form -->
+                <form id="openAccountForm">
+
+                    <input type="hidden" id="db_name_input" name="db_name">
+                    <input type="hidden" id="collection_name_input" name="collection_name">
+
+                    <div class="form-group">
+                        <label for="accountNumber">Account Number:</label>
+                        <input type="text" class="form-control" id="accountNumber" name="accountNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="clientName">Client Name:</label>
+                        <input type="text" class="form-control" id="clientName" name="clientName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="balance">Balance:</label>
+                        <input type="number" class="form-control" id="balance" name="balance" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="accountType">Account Type:</label>
+                        <select class="form-control" id="accountType" name="accountType" required>
+                            <option value="DEPOSIT">Deposit</option>
+                            <option value="SAVING">Saving</option>
+                            <option value="LOAN">Loan</option>
+                            <option value="STUDENT">Student</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Has Insurance:</label>
+                        <div class="d-flex">
+                            <div class="custom-control custom-radio mr-4">
+                                <input type="radio" id="hasInsuranceYes" name="hasInsurance" class="custom-control-input" value="yes">
+                                <label class="custom-control-label" for="hasInsuranceYes">Yes</label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="hasInsuranceNo" name="hasInsurance" class="custom-control-input" value="no">
+                                <label class="custom-control-label" for="hasInsuranceNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Open Account</button>
+                </form>
+            </div>
+            <div id="accountExistsMsg" class="alert alert-danger d-none">An account with the same account number already exists.</div>
+        </div>
+    </div>
+</div>
+
+
 <script>
     $(document).ready(function () {
-        let selectedDbName;
+        fetchAndDisplayDatabases();
+        let selectedDbName = localStorage.getItem('selectedDbName') || '';
+        let selectedCollectionName = localStorage.getItem('selectedCollectionName') || '';
+        console.log('selectedDbName:', selectedDbName);
+        console.log('selectedCollectionName:', selectedCollectionName);
 
         $('#createDbBtn').click(function () {
             $('#createDbModal').modal('show');
         });
 
+        // Function to show the message
+        function showChooseCollectionMessage() {
+            $('#choose-collection-message').removeClass('d-none');
+        }
+
+        // Function to hide the message
+        function hideChooseCollectionMessage() {
+            $('#choose-collection-message').addClass('d-none');
+        }
+
+        function showNoDocumentsMessage() {
+            $('#document-display').html('<p>No documents exist yet. Add a new one to see what happens.</p>');
+            $('#documentCount').text('');
+            $('#prevDocumentBtn').hide();
+            $('#nextDocumentBtn').hide();
+            $('#documentMessage').text('');
+        }
+
+        // Function to hide the "No documents exist yet" message
+        function hideNoDocumentsMessage() {
+            $('#document-display').empty();
+        }
+
+        async function displayDatabases() {
+            try {
+                const databaseNames = await $.get('/admin-dashboard/banking-system/fetchExistingDatabases');
+                $('#databases').empty();
+                if (!Array.isArray(databaseNames) || databaseNames.length === 0) {
+                    showNoDocumentsMessage(); // Show the message when no databases exist
+                    return;
+                }
+                let anyCollectionSelected = false; // Flag to track if any collection is selected
+
+                for (const dbName of databaseNames) {
+                    const databaseElement = $(`
+                <div class="mb-3 database-section">
+                    <button class="icon-btn expand-btn"><i class="fas fa-chevron-right"></i></button>
+                    <strong class="database-name ml-2">${dbName}</strong>
+                    <button class="icon-btn ml-2 delete-btn"><i class="fas fa-trash-alt fa-xs"></i></button>
+                    <button class="add-btn ml-2 create-col-btn">+</button>
+                    <div class="collection-container ml-4"></div>
+                </div>
+            `);
+
+                    $('#databases').append(databaseElement);
+                    const collections = await fetchAndDisplayCollections(databaseElement, dbName);
+                    if (collections.length === 0) {
+                        databaseElement.find('.expand-btn').prop('disabled', true);
+                    }
+
+                    // Check if the current collection is selected
+                    if (collections.includes(selectedCollectionName)) {
+                        anyCollectionSelected = true;
+                    }
+                }
+
+                if (!selectedCollectionName && anyCollectionSelected) {
+                    showChooseCollectionMessage(); // Show the "Choose a collection" message
+                } else {
+                    hideChooseCollectionMessage();
+                }
+                if (anyCollectionSelected) {
+                    hideNoDocumentsMessage(); // Hide the message when collections exist
+                } else {
+                    showNoDocumentsMessage(); // Show the "No databases" message
+                }
+            } catch (error) {
+                console.error('An error occurred:', error);
+            }
+        }
+
+        let collectionItemClickEnabled = true; // Flag to control collection item click
+        $(document).on('click', '.collection-item', function () {
+            if (!collectionItemClickEnabled) {
+                return;
+            }
+            const dbName = $(this).closest('.database-section').find('.database-name').text();
+            const collectionName = $(this).find('span').text();
+            $('.collection-item').not(this).removeClass('selected');
+            $(this).toggleClass('selected');
+            localStorage.setItem('selectedDbName', dbName);
+            localStorage.setItem('selectedCollectionName', collectionName);
+            fetchDocuments(dbName, collectionName); // Fetch documents when clicking on a collection
+        });
+
+
         function fetchAndDisplayCollections(dbElement, dbName) {
             const collectionContainer = dbElement.find('.collection-container');
             return new Promise((resolve, reject) => {
                 $.get(`/admin-dashboard/banking-system/fetchExistingCollections?db_name=${dbName}`, function (collections) {
-                    collectionContainer.empty();
-                    collections.forEach(collection => {
-                        appendCollectionToContainer(collectionContainer, collection);
-                    });
-                    const hasCollections = collections.length > 0;
-                    dbElement.find('.expand-btn').prop('disabled', !hasCollections);
-                    resolve();
-                }).fail(err => reject(err));
+                    console.log(`Collections for ${dbName}:`, collections); // Log the collections to the console for debugging
+                    if (Array.isArray(collections)) {
+                        console.log(`Number of collections for ${dbName}:`, collections.length); // Log the collections to the console for debugging
+                        collectionContainer.empty();
+                        collections.forEach(collection => {
+                            appendCollectionToContainer(collectionContainer, collection);
+                        });
+                        const hasCollections = collections.length > 0;
+                        console.log(`Has collections for ${dbName}:`, hasCollections); // Log whether there are collections
+                        dbElement.find('.expand-btn').prop('disabled', !hasCollections);
+                        resolve(collections); // Resolve the promise with the collections data
+                    } else {
+                        console.error('Invalid collections data received for', dbName, collections);
+                        reject('Invalid collections data received');
+                    }
+                }).fail(err => {
+                    console.error('Failed to fetch collections for', dbName, err);
+                    reject(err);
+                });
             });
         }
+
 
         function appendCollectionToContainer(container, collectionName, isNew = false) {
             const collectionHtml = `
@@ -203,7 +482,7 @@
             let added = false;
             container.children().each(function () {
                 const existingCollectionName = $(this).find('span').text();
-                if (compareAccountNumbers(collectionName, existingCollectionName) < 0) {
+                if (compareCollectionNames(collectionName, existingCollectionName) < 0) {
                     $(this).before(collectionHtml);
                     added = true;
                     return false; // exit the each loop
@@ -215,26 +494,12 @@
             }
         }
 
-        async function displayDatabases(databaseNames) {
-            $('#databases').empty();
-            for (const dbName of databaseNames) {
-                const databaseElement = $(`
-                <div class="mb-3 database-section">
-                    <button class="icon-btn expand-btn"><i class="fas fa-chevron-right"></i></button>
-                    <strong class="database-name ml-2">${dbName}</strong>
-                    <button class="icon-btn ml-2 delete-btn"><i class="fas fa-trash-alt fa-xs"></i></button>
-                    <button class="add-btn ml-2 create-col-btn">+</button>
-                    <div class="collection-container ml-4"></div>
-                </div>
-            `);
-                $('#databases').append(databaseElement);
-                try {
-                    await fetchAndDisplayCollections(databaseElement, dbName);
-                } catch (error) {
-                    console.error('Failed to fetch collections for', dbName, error);
-                }
-            }
+        function compareCollectionNames(a, b) {
+            const numA = parseInt(a.match(/\d+/)[0]);
+            const numB = parseInt(b.match(/\d+/)[0]);
+            return numA - numB;
         }
+
 
         function fetchAndDisplayDatabases() {
             $.get('/admin-dashboard/banking-system/fetchExistingDatabases', function (data) {
@@ -251,6 +516,11 @@
                         displayDatabases(response);
                         $('#errorMsg').addClass('d-none');
                         $('#createDbModal').modal('hide');
+                        $('#addDbSuccessMsg').text('Database has been added successfully.');
+                        $('#addDbSuccessMsg').removeClass('d-none');
+                        setTimeout(function () {
+                            $('#addDbSuccessMsg').addClass('d-none').text('');
+                        }, 3000);
                     } else {
                         $('#errorMsg').removeClass('d-none').text(response);
                     }
@@ -266,7 +536,13 @@
             if (!userConfirmation) {
                 return;
             }
-            $.post('/admin-dashboard/banking-system/deleteDB', { db_name: dbName })
+            $.ajax({
+                url: '/admin-dashboard/banking-system/deleteDB',
+                method: 'DELETE',
+                data: {
+                    db_name: dbName
+                }
+            })
                 .done(function (response) {
                     if (Array.isArray(response)) {
                         displayDatabases(response);
@@ -284,109 +560,316 @@
 
         $(document).on('click', '.create-col-btn', function () {
             selectedDbName = $(this).siblings('.database-name').text();
+            selectedCollectionName = '';
+            localStorage.setItem('selectedDbName', selectedDbName);
+            localStorage.setItem('selectedCollectionName', '');
             $('#selectedDbName').text(selectedDbName);
             $('#createCollectionModal').modal('show');
         });
 
+
         $('#createCollectionForm').submit(function (e) {
             e.preventDefault();
             let collectionName = $('#collection_name').val();
+            $('#db_name_input').val(selectedDbName);
+            $('#collection_name_input').val(collectionName);
+            selectedCollectionName = collectionName;
             $.post('/admin-dashboard/banking-system/createCol', { db_name: selectedDbName, collection_name: collectionName })
                 .done(function (response) {
-                    $('#createCollectionModal').modal('hide');
-                    let successMsg = $(`<div class="alert alert-success mt-3">${response.message}</div>`);
-                    $('.container').prepend(successMsg);
-                    setTimeout(() => successMsg.fadeOut(), 3000);
-
-                    const container = $(`.database-name`).filter(function () {
-                        return $(this).text() === selectedDbName;
-                    }).siblings('.collection-container');
-
-                    // Check the position to insert the collection in a sorted manner
-                    let added = false;
-                    container.children().each(function () {
-                        const existingCollectionName = $(this).find('span').text();
-                        if (compareAccountNumbers(collectionName, existingCollectionName) < 0) {
-                            $(this).before(`
-                            <div class="collection-item newly-added">
-                                <span>${collectionName}</span>
-                                <div>
-                                    <button class="icon-btn delete-collection-btn"><i class="fas fa-trash-alt fa-xs"></i></button>
-                                    <button class="icon-btn add-document-btn">+</button>
+                    if (response.message === "Collection already exists.") {
+                        $('#collectionExistsMsg').removeClass('d-none').text(response.message);
+                    } else {
+                        $('#collectionExistsMsg').addClass('d-none');
+                        $('#createCollectionModal').modal('hide');
+                        let successMsg = $(`<div class="alert alert-success mt-3">${response.message}</div>`);
+                        $('.container').prepend(successMsg);
+                        setTimeout(() => successMsg.fadeOut(), 3000);
+                        const container = $(`.database-name`).filter(function () {
+                            return $(this).text() === selectedDbName;
+                        }).siblings('.collection-container');
+                        let added = false;
+                        container.children().each(function () {
+                            const existingCollectionName = $(this).find('span').text();
+                            if (compareCollectionNames(collectionName, existingCollectionName) < 0) {
+                                $(this).before(`
+                                <div class="collection-item newly-added">
+                                    <span>${collectionName}</span>
+                                    <div>
+                                        <button class="icon-btn delete-collection-btn"><i class="fas fa-trash-alt fa-xs"></i></button>
+                                        <button class="icon-btn add-document-btn">+</button>
+                                    </div>
                                 </div>
-                            </div>
-                        `);
-                            added = true;
-                            return false; // exit the each loop
-                        }
-                    });
-                    if (!added) {
-                        container.append(`
+                            `);
+                                added = true;
+                                return false;
+                            }
+                        });
+                        container.addClass('newly-added');
+                        setTimeout(() => {
+                            container.removeClass('newly-added');
+                        }, 3000);
+                        if (!added) {
+                            container.append(`
                         <div class="collection-item newly-added">
                             <span>${collectionName}</span>
                             <div>
                                 <button class="icon-btn delete-collection-btn"><i class="fas fa-trash-alt fa-xs"></i></button>
-                                <button class="icon-btn add-document-btn">+</button>
+                                <button class="icon-btn add-document-btn" data-dbname="${selectedDbName}" data-colname="${collectionName}">+</button>
                             </div>
                         </div>
                     `);
+                        }
+                        container.prevAll('.expand-btn').children('i').removeClass('fa-chevron-right').addClass('fa-chevron-down');
+                        container.show();
+                        setTimeout(() => $(`.newly-added`).removeClass('newly-added'), 3000);
                     }
-                    container.prevAll('.expand-btn').children('i').removeClass('fa-chevron-right').addClass('fa-chevron-down');
-                    container.show();
-                    setTimeout(() => $(`.newly-added`).removeClass('newly-added'), 3000);
                 })
                 .fail(function (jqXHR) {
-                    $('#collectionErrorMsg').removeClass('d-none').text(jqXHR.responseText || "There was an error processing your request. Please try again.");
+                    $('#collectionExistsMsg').removeClass('d-none').text(jqXHR.responseText || "There was an error processing your request. Please try again.");
                 });
         });
 
         $(document).on('click', '.delete-collection-btn', function () {
             const collectionItem = $(this).closest('.collection-item');
             const collectionName = collectionItem.find('span').text();
-            const dbName = collectionItem.closest('.database-section').find('.database-name').text();
+            const dbName = collectionItem.closest('.database-section').find('.database-name').text(); // Define dbName here
             const userConfirmation = confirm(`Are you sure you want to delete the collection "${collectionName}"?`);
             if (!userConfirmation) {
                 return;
             }
-            $.post('/admin-dashboard/banking-system/deleteCol', { db_name: dbName, collection_name: collectionName })
+
+            // Disable collection item click while processing delete
+            collectionItemClickEnabled = false;
+
+            $.ajax({
+                url: '/admin-dashboard/banking-system/deleteCol',
+                method: 'DELETE',
+                data: {
+                    db_name: dbName,
+                    collection_name: collectionName
+                }
+            })
                 .done(function (response) {
                     if (Array.isArray(response)) {
-                        // Collection has been deleted successfully, remove it from the DOM
                         collectionItem.fadeOut(300, function () {
                             $(this).remove();
                         });
                         let successMsg = $(`<div class="alert alert-success mt-3">Collection ${collectionName} has been deleted in ${dbName} database</div>`);
                         $('.container').prepend(successMsg);
                         setTimeout(() => successMsg.fadeOut(), 3000);
+
+                        selectedCollectionName = '';
+                        localStorage.setItem('selectedCollectionName', '');
                     } else {
                         alert(response);
                     }
                 })
                 .fail(function () {
                     alert("There was an error processing your request. Please try again.");
+                })
+                .always(function () {
+                    collectionItemClickEnabled = true;
                 });
         });
 
-        function compareAccountNumbers(account1, account2) {
-            const num1 = parseInt(account1.match(/\d+/)[0]);
-            const num2 = parseInt(account2.match(/\d+/)[0]);
-            return num1 - num2;
-        }
-
         $(document).on('click', '.expand-btn', function () {
-            const collectionContainer = $(this).siblings('.collection-container');
-            if (collectionContainer.children().length > 0) {
-                if (collectionContainer.is(':visible')) {
-                    $(this).children('i').removeClass('fa-chevron-down').addClass('fa-chevron-right');
-                    collectionContainer.slideUp();
-                } else {
-                    $(this).children('i').removeClass('fa-chevron-right').addClass('fa-chevron-down');
-                    collectionContainer.slideDown();
-                }
+            const container = $(this).siblings('.collection-container');
+            const icon = $(this).children('i');
+            if (container.is(':visible')) {
+                container.slideUp(300);
+                icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+            } else {
+                container.slideDown(300);
+                icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
             }
         });
-        fetchAndDisplayDatabases();
-    });
+
+
+        $(document).on('click', '.add-document-btn', function () {
+            console.log("documentttttttttttttttttttttttttttttttttttttttttttttttttt");
+            const dbName = $(this).closest('.database-section').find('.database-name').text();
+            const colName = $(this).closest('.collection-item').find('span').text();
+            console.log('data-dbname:', dbName);
+            console.log('data-colname:', colName);
+            $('#db_name_input').val(dbName);
+            $('#collection_name_input').val(colName);
+            $('#openAccountModal').modal('show');
+        });
+
+
+        $('#openAccountForm').submit(function (e) {
+            e.preventDefault();
+            const dbName = $('#add-document-btn-modal').data('dbname');
+            const colName = $('#add-document-btn-modal').data('colname');
+            $.ajax({
+                type: "POST",
+                url: "/admin-dashboard/banking-system/openAccount",
+                data: $('#openAccountForm').serialize(),
+                dataType: "json",
+                success: function (response) {
+                    // Close the modal
+                    $('#openAccountModal').modal('hide');
+
+                    if (response.message && response.message.includes("successful")) {
+                        const successMsg = $('<div class="alert alert-success mt-3"></div>').text(response.message);
+                        $('.container').prepend(successMsg);
+                        setTimeout(() => successMsg.fadeOut(), 3000);
+                        if (response.accounts) {
+                            documents = response.accounts;
+                            currentDocumentIndex = 0;
+                            displayCurrentDocument();
+                        }
+                    } else if (response.message && response.message.includes("already exists")) {
+                        // Display the error message for duplicate account entry
+                        $('#accountExistsMsg').removeClass('d-none').text(response.message);
+                        setTimeout(() => $('#accountExistsMsg').addClass('d-none'), 3000); // Hide after 3 seconds
+                    } else {
+                        alert(response.message || "Unknown error");
+                    }
+                },
+                error: function (jqXHR) {
+                    if (jqXHR.status === 409) { // 409 is HTTP CONFLICT
+                        $('#accountExistsMsg').removeClass('d-none').text(jqXHR.responseText || "with the same account number already exists.");
+                    } else {
+                        $('#accountExistsMsg').removeClass('d-none').text(jqXHR.responseText || "There was an error processing your request. Please try again.");
+                    }
+                    setTimeout(() => $('#accountExistsMsg').addClass('d-none'), 3000); // Hide after 3 seconds
+                }
+            });
+        });
+
+        let documents = [];
+        let currentDocumentIndex = 0;
+
+        function displayCurrentDocument() {
+            const documentDisplay = $('#document-display');
+            const documentCount = $('#documentCount');
+            const prevBtn = $('#prevDocumentBtn');
+            const nextBtn = $('#nextDocumentBtn');
+
+            const documentMessage = $('#documentMessage');
+            if (documents.length === 0 || currentDocumentIndex < 0 || currentDocumentIndex >= documents.length) {
+                documentDisplay.html('<p>No documents exist yet. Add a new one to see what happens.</p>');
+                documentCount.text('');
+                prevBtn.hide();
+                nextBtn.hide();
+                documentMessage.text('');
+                return;
+            }
+
+            const currentDocument = documents[currentDocumentIndex];
+            currentDocument.hasInsurance = currentDocument.hasInsurance ? "Yes" : "No";
+            const formattedProperties = [];
+            for (const key in currentDocument) {
+                if (key === "_id") {
+                    formattedProperties.push(`<div><strong class="property-name">${key}</strong>: <span class="property-value" style="color: orange;">ObjectId("${currentDocument[key]}")</span></div>`);
+                } else {
+                    formattedProperties.push(`<div><strong class="property-name">${key}</strong>: <span class="property-value">${currentDocument[key]}</span></div>`);
+                }
+            }
+            const formattedDocument = formattedProperties.join('');
+            documentDisplay.html('<pre>' + formattedDocument + '</pre');
+            const deleteBtn = `<button id="deleteDocumentBtn" class="btn btn-danger mt-2">Delete Document</button>`;
+            documentDisplay.append(deleteBtn);
+            const docCountText = `Displaying documents <strong>${currentDocumentIndex + 1} - ${documents.length}</strong>`;
+            documentCount.html(docCountText);
+            if (documents.length > 1) {
+                prevBtn.show();
+                nextBtn.show();
+            } else {
+                prevBtn.hide();
+                nextBtn.hide();
+            }
+            if (currentDocumentIndex === 0) {
+                documentMessage.html('<strong>You are on the first document</strong>');
+            } else {
+                documentMessage.text('');
+            }
+        }
+
+        $(document).on('click', '#deleteDocumentBtn', function () {
+            const currentDocument = documents[currentDocumentIndex];
+            console.log(currentDocument)
+            const currentDocumentId = currentDocument && currentDocument._id ? currentDocument._id : null;
+            console.log(currentDocumentId + " wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww")
+            if (!currentDocumentId) {
+                console.error('Error: The current document does not have a valid _id property.');
+                return;
+            }
+            deleteDocument(currentDocumentId);
+        });
+
+        function deleteDocument(documentId) {
+            const dbName = localStorage.getItem('selectedDbName');
+            const collectionName = localStorage.getItem('selectedCollectionName');
+
+            $.ajax({
+                url: `/admin-dashboard/banking-system/deleteAccount`,
+                method: 'DELETE',
+                data: {
+                    db_name: dbName,
+                    collection_name: collectionName,
+                    doc_id: documentId
+                }
+            })
+                .done(function(response) {
+                    if (response.message === "Account deleted successfully.") {
+                        let successMsg = $(`<div class="alert alert-success mt-3">Document has been deleted.</div>`);
+                        $('.container').prepend(successMsg);
+                        setTimeout(() => successMsg.fadeOut(), 3000);
+                        // Use the updated list from the server response
+                        documents = response.accounts || [];
+                        if (documents.length === 0) {
+                            currentDocumentIndex = 0;
+                        } else if (currentDocumentIndex > documents.length - 1) {
+                            currentDocumentIndex--;
+                        }
+                        displayCurrentDocument();
+                    } else {
+                        // Display error on the page rather than using an alert
+                        let errorMsg = $('#addErrorMsg');
+                        errorMsg.text(response.message || "Error while deleting the document.");
+                        errorMsg.removeClass('d-none');
+                        setTimeout(() => errorMsg.addClass('d-none'), 3000);
+                    }
+                })
+                .fail(function() {
+                    // Display error on the page rather than using an alert for general ajax failure
+                    let errorMsg = $('#addErrorMsg');
+                    errorMsg.text("There was an error processing your request. Please try again.");
+                    errorMsg.removeClass('d-none');
+                    setTimeout(() => errorMsg.addClass('d-none'), 3000);
+                });
+        }
+
+
+        function fetchDocuments(dbName, collectionName) {
+            $.get(`/admin-dashboard/banking-system/readAccounts?db_name=${dbName}&collection_name=${collectionName}`, function (data) {
+                if (Array.isArray(data)) {
+                    documents = data.sort((a, b) => a.accountNumber - b.accountNumber);
+                } else {
+                    documents = [];
+                }
+                currentDocumentIndex = 0;
+                displayCurrentDocument();
+                $('#document-display').css('display', 'block');
+            });
+        }
+
+        $('#prevDocumentBtn').click(function () {
+            if (currentDocumentIndex > 0) {
+                currentDocumentIndex--;
+                displayCurrentDocument();
+            }
+        });
+
+        $('#nextDocumentBtn').click(function () {
+            if (currentDocumentIndex < documents.length - 1) {
+                currentDocumentIndex++;
+                displayCurrentDocument();
+            }
+        });
+    })
 </script>
 </body>
 </html>

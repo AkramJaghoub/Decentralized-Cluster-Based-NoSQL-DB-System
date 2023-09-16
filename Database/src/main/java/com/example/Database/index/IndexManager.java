@@ -13,11 +13,23 @@ public class IndexManager {
     private final Map<String, Index> indexMap = new ConcurrentHashMap<>();
     private final Map<String, PropertyIndex> propertyIndexMap = new ConcurrentHashMap<>();
 
+    private boolean indexesLoaded = false;
+
+    public synchronized void loadAllIndexesOnce() {
+        if (!indexesLoaded) {
+            loadAllIndexes();
+            indexesLoaded = true;
+        }
+    }
+
     public void loadAllIndexes() {
         System.out.println("Loading all indexes...");
         File databasePath = new File(FileService.getDatabasePath().toURI());
         File indexesDirectory = new File(databasePath, "indexes");
-        FileService.createDirectoryIfNotExist(indexesDirectory);
+        if(!indexesDirectory.exists()){
+            System.out.println("Ssssssssssssssss");
+            return;
+        }
         String[] collectionDirectories = indexesDirectory.list();
         if (collectionDirectories != null) {
             for (String collectionDir : collectionDirectories) {

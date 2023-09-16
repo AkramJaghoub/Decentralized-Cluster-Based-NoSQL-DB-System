@@ -1,9 +1,6 @@
 package com.example.Database.model;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Database {
@@ -42,5 +39,18 @@ public class Database {
             throw new IllegalArgumentException("Database name cannot be null or empty.");
         }
         collections.remove(collectionName);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Database database = (Database) o;
+        return Objects.equals(databaseName, database.databaseName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(databaseName);
     }
 }

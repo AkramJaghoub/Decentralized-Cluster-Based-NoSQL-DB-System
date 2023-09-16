@@ -19,28 +19,29 @@ public class DatabaseController {
     private QueryManager queryManager;
 
     @PostMapping("/createDB/{db_name}")
-    public String createDatabase(@PathVariable("db_name") String dbName,
-                                 @RequestHeader("username") String username,
-                                 @RequestHeader("password") String password) {
+    public ResponseEntity<String> createDatabase(@PathVariable("db_name") String dbName,
+                                                 @RequestHeader("username") String username,
+                                                 @RequestHeader("password") String password) {
 
         if(authenticationService.isAdmin(username, password)){
-            return "User is not authorized";
+            return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);
         ApiResponse response = queryManager.createDatabase(dbName);
-        return response.getMessage();
+        return new ResponseEntity<>(response.getMessage(), response.getHttpStatus());
     }
 
     @DeleteMapping("/deleteDB/{db_name}")
-    public String deleteDatabase(@PathVariable("db_name") String dbName,
-                                 @RequestHeader("username") String username,
-                                 @RequestHeader("password") String password) {
+    public ResponseEntity<String> deleteDatabase(@PathVariable("db_name") String dbName,
+                                                 @RequestHeader("username") String username,
+                                                 @RequestHeader("password") String password) {
+
         if(authenticationService.isAdmin(username, password)){
-            return "User is not authorized";
+            return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);
         ApiResponse response = queryManager.deleteDatabase(dbName);
-        return response.getMessage();
+        return new ResponseEntity<>(response.getMessage(), response.getHttpStatus());
     }
 
     @GetMapping("/fetchExistingDatabases")

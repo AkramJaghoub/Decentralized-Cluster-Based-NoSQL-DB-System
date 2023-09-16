@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import lombok.SneakyThrows;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import com.example.web.model.Admin;
 
@@ -56,17 +57,19 @@ public class DatabaseService {
 
     public List<String> getAllDatabases(HttpSession session) {
         List<String> databaseNames = this.fetchExistingDatabases(session);
+        if (databaseNames.isEmpty()) {
+            return Collections.emptyList();
+        }
         return cleanAndSortDatabases(databaseNames);
     }
 
     private List<String> cleanAndSortDatabases(List<String> databaseNames) {
         List<String> cleansedDatabaseNames = new ArrayList<>();
-        for (String dbName : databaseNames) {
-            String[] splitNames = dbName.split(", ");
-            for (String splitName : splitNames) {
-                String cleansedName = splitName.trim();
-                if (!cleansedName.isEmpty()) {
-                    cleansedDatabaseNames.add(cleansedName);
+        for (String databaseName : databaseNames) {
+            String[] subNames = databaseName.split(", ");
+            for (String subName : subNames) {
+                if (!subName.isEmpty()) {
+                    cleansedDatabaseNames.add(subName);
                 }
             }
         }

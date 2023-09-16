@@ -45,7 +45,7 @@ public class CollectionController {
         }
     }
 
-    @PostMapping("/deleteCol")
+    @DeleteMapping("/deleteCol")
     public ResponseEntity<?> deleteCollection(@RequestParam("db_name") String dbName,
                                               @RequestParam("collection_name") String collectionName,
                                               HttpSession session) {

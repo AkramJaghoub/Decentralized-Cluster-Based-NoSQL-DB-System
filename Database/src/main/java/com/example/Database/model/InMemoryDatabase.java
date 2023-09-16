@@ -13,25 +13,22 @@ public class InMemoryDatabase {
         this.databases = new HashMap<>();
     }
 
-    public static InMemoryDatabase getInstance(){
-        if(instance == null)
+    public static InMemoryDatabase getInstance() {
+        if (instance == null)
             instance = new InMemoryDatabase();
         return instance;
     }
 
-
-
-    public void createDatabase(String databaseName) {
+    public synchronized void createDatabase(String databaseName) {
         if (databaseName == null || databaseName.trim().isEmpty()) {
             throw new IllegalArgumentException("Database name cannot be null or empty.");
         }
         if (databases.containsKey(databaseName)) {
-            System.out.println("Database already exists: " + databaseName);
+            return;
         }
         Database database = new Database(databaseName);
         databases.put(databaseName, database);
     }
-
 
     public Database getOrCreateDatabase(String databaseName) {
         if (databaseName == null || databaseName.trim().isEmpty()) {
