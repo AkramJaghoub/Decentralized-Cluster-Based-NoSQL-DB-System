@@ -4,10 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
 @Getter
+@Setter
 @AllArgsConstructor
-public class Admin {
-    private String username;
+public class User {
+    private long accountNumber;
     private String password;
 }

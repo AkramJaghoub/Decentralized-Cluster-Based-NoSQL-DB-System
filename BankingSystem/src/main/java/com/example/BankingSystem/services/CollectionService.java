@@ -1,44 +1,51 @@
 package com.example.BankingSystem.services;
 
-import jakarta.servlet.ServletOutputStream;
+import com.example.BankingSystem.Model.Admin;
 import org.springframework.stereotype.Service;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.*;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import lombok.SneakyThrows;
-import com.example.web.model.Admin;
 import org.springframework.core.ParameterizedTypeReference;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
 public class CollectionService {
-    @SneakyThrows
-    public String createCollection(String dbName, String collectionName, HttpSession session) {
+
+    public ResponseEntity<String> createCollection(String dbName, String collectionName, HttpSession session) {
         Admin admin = (Admin) session.getAttribute("login");
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set("username", admin.getUsername());
         headers.set("password", admin.getPassword());
+        headers.set("X-Broadcast", "false");
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         String url = "http://worker1:9000/api/" + dbName + "/createCol/" + collectionName;
-        ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
-        return responseEntity.getBody();
+        try {
+            return restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+        } catch (HttpClientErrorException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        }
     }
 
     @SneakyThrows
-    public String deleteCollection(String dbName, String collectionName, HttpSession session) {
-        System.out.println("sssssssssssssssssssssssssssssssssssssseeeeeeeeeeeewwwwwwwwwwwwwwwwwqqqqqqqqqqqqqqq");
+    public ResponseEntity<String> deleteCollection(String dbName, String collectionName, HttpSession session) {
         Admin admin = (Admin) session.getAttribute("login");
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set("username", admin.getUsername());
         headers.set("password", admin.getPassword());
+        headers.set("X-Broadcast", "false");
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         String url = "http://worker1:9000/api/" + dbName + "/deleteCol/" + collectionName;
-        ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.DELETE, requestEntity, String.class);
-        System.out.println(responseEntity.getBody());
-        return responseEntity.getBody();
+        try {
+            return restTemplate.exchange(url, HttpMethod.DELETE, requestEntity, String.class);
+        } catch (HttpClientErrorException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        }
     }
 
     @SneakyThrows
@@ -52,32 +59,16 @@ public class CollectionService {
         String url = "http://worker1:9000/api/fetchExistingCollections/" + dbName;
         ResponseEntity<List<String>> responseEntity = restTemplate.exchange(url, HttpMethod.GET, requestEntity, new ParameterizedTypeReference<>() {
         });
-        System.out.println(responseEntity.getBody());
         return responseEntity.getBody();
     }
 
 
     public List<String> getAllCollections(String dbName, HttpSession session) {
         List<String> collectionNames = this.fetchExistingCollections(dbName, session);
-        return cleanAndSortCollections(collectionNames);
-    }
-
-    private List<String> cleanAndSortCollections(List<String> collectionNames) {
-        List<String> cleansedCollectionNames = new ArrayList<>();
-        for (String colName : collectionNames) {
-            String[] splitNames = colName.split(", ");
-            for (String splitName : splitNames) {
-                String cleansedName = splitName.trim();
-                if (!cleansedName.isEmpty()) {
-                    cleansedCollectionNames.add(cleansedName);
-                }
-            }
+        if (collectionNames.isEmpty()) {
+            return Collections.emptyList();
         }
-        cleansedCollectionNames.sort((name1, name2) -> {
-            int num1 = Integer.parseInt(name1.replaceAll("[^0-9]", ""));
-            int num2 = Integer.parseInt(name2.replaceAll("[^0-9]", ""));
-            return Integer.compare(num1, num2);
-        });
-        return cleansedCollectionNames;
+        collectionNames.sort(String::compareTo);
+        return collectionNames;
     }
 }

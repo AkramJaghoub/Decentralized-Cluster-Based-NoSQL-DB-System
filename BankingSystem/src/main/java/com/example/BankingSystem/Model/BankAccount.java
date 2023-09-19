@@ -1,9 +1,17 @@
 package com.example.BankingSystem.Model;
 
 import com.example.BankingSystem.database.collection.docuemnt.AccountTypes;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import json.JsonBuilder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.json.simple.JSONObject;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class BankAccount{
 
     private long accountNumber;
@@ -14,67 +22,6 @@ public class BankAccount{
     private boolean hasInsurance;
     private String password;
     private String _id;
-
-
-    public BankAccount(){
-    }
-
-    public long getAccountNumber(){
-        return accountNumber;
-    }
-
-    public void setAccountNumber(long accountNumber){
-        this.accountNumber = accountNumber;
-    }
-
-
-    public String getClientName(){
-        return clientName;
-    }
-
-    public void setClientName(String clientName){
-        this.clientName = clientName;
-    }
-
-    public double getBalance() {
-        return balance;
-    }
-
-    public void setBalance(double balance) {
-        this.balance = balance;
-    }
-
-    public AccountTypes getAccountType() {
-        return accountType;
-    }
-
-    public void setAccountType(AccountTypes accountType) {
-        this.accountType = accountType;
-    }
-
-
-    public boolean getHasInsurance() {
-        return hasInsurance;
-    }
-
-    public void setHasInsurance(boolean hasInsurance) {
-        this.hasInsurance = hasInsurance;
-    }
-
-    public String getPassword(){
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-    public String get_id() {
-        return _id;
-    }
-
-    public void set_id(String _id) {
-        this._id = _id;
-    }
 
     public static BankAccount addBankAccount(JSONObject accountObject) {
         BankAccount bankAccount = new BankAccount();
@@ -97,17 +44,5 @@ public class BankAccount{
                 .add("hasInsurance",hasInsurance)
                 .add("password", password)
                 .build();
-    }
-
-    @Override
-    public String toString() {
-        return "BankAccount{" +
-                "accountNumber=" + accountNumber +
-                ", clientName='" + clientName + '\'' +
-                ", balance=" + balance +
-                ", accountType=" + accountType +
-                ", hasInsurance=" + hasInsurance +
-                ", password=" + password +
-                '}';
     }
 }

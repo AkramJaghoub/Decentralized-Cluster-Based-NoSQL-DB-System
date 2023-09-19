@@ -1,6 +1,6 @@
 package com.example.BankingSystem.controllers;
 
-import com.example.web.model.Admin;
+import com.example.BankingSystem.Model.Admin;
 import com.example.BankingSystem.services.AuthenticationService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;

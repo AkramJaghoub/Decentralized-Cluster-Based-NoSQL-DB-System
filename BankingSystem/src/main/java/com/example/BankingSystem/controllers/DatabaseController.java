@@ -1,12 +1,12 @@
 package com.example.BankingSystem.controllers;
 
+import com.example.BankingSystem.Model.Admin;
 import com.example.BankingSystem.services.DatabaseService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.example.web.model.Admin;
 import java.util.Collections;
 import java.util.List;
 
@@ -18,22 +18,21 @@ public class DatabaseController {
     DatabaseService databaseService;
 
     @PostMapping("/createDB")
-    public ResponseEntity<?> createDb(@RequestParam("db_name") String dbName,
-                                      HttpSession session) {
+    public ResponseEntity<?> createDb(@RequestParam("db_name") String dbName, HttpSession session) {
         Admin login = (Admin) session.getAttribute("login");
         if (login == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header("Location", "/login-page").body("login-page");
         }
-        String response = databaseService.createDatabase(dbName, session);
-        if (response.contains("successful")) {
+        ResponseEntity<String> response = databaseService.createDatabase(dbName, session);
+        HttpStatus status = (HttpStatus) response.getStatusCode();
+        String message = response.getBody();
+        if (status == HttpStatus.CREATED) {
             List<String> allDatabases = databaseService.getAllDatabases(session);
-            return ResponseEntity.ok(allDatabases);
-        }
-        else if (response.contains("Database already exists.")) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
-        }
-        else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return new ResponseEntity<>(allDatabases, status);
+        } else if (status == HttpStatus.CONFLICT) {
+            return ResponseEntity.status(status).body(message);
+        } else {
+            return ResponseEntity.status(status).body(message);
         }
     }
 
@@ -44,16 +43,16 @@ public class DatabaseController {
         if (login == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header("Location", "/login-page").body("login-page");
         }
-        String response = databaseService.deleteDatabase(dbName, session);
-        if (response.contains("successful")) {
+        ResponseEntity<String> responseEntity = databaseService.deleteDatabase(dbName, session);
+        HttpStatus status = (HttpStatus) responseEntity.getStatusCode();
+        String message = responseEntity.getBody();
+        if (status == HttpStatus.ACCEPTED) {
             List<String> allDatabases = databaseService.getAllDatabases(session);
-            return ResponseEntity.ok(allDatabases);
-        }
-        else if (response.contains("Database does not exist.")) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        }
-        else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return new ResponseEntity<>(allDatabases, status);
+        } else if (status == HttpStatus.NOT_FOUND) {
+            return ResponseEntity.status(status).body(message);
+        } else {
+            return ResponseEntity.status(status).body(message);
         }
     }
 
