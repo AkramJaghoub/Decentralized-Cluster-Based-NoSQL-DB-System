@@ -20,4 +20,8 @@ public final class PasswordHashing {
             throw new RuntimeException("SHA-256 algorithm not available.", e);
         }
     }
+
+    static boolean isAlreadyHashed(String potentialPassword) {
+        return potentialPassword.length() == 64;
+    }
 }

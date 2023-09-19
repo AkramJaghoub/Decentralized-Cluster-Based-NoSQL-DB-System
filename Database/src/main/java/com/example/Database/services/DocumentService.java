@@ -1,5 +1,6 @@
 package com.example.Database.services;
 
+import com.example.Database.affinity.AffinityManager;
 import com.example.Database.file.DatabaseFileOperations;
 import com.example.Database.file.FileService;
 import com.example.Database.index.IndexManager;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.sql.SQLOutput;
 import java.util.*;
 import java.io.File;
 
@@ -23,15 +25,19 @@ public class DocumentService {
 
     private final SchemaValidator schemaValidator;
     private final IndexManager indexManager;
+    private final AffinityManager affinityManager;
+
 
     @Autowired
-    public DocumentService(SchemaValidator schemaValidator, IndexManager indexManager) {
+    public DocumentService(SchemaValidator schemaValidator, IndexManager indexManager, AffinityManager affinityManager) {
         this.schemaValidator = schemaValidator;
         this.indexManager = indexManager;
+        this.affinityManager = affinityManager;
     }
 
     @SuppressWarnings("unchecked")
     public ApiResponse createDocument(Collection collection, Document document) {
+        System.out.println("Thread " + Thread.currentThread().getName() + ": Entering createDocument method with document id: " + document.getId());
         String collectionName = collection.getCollectionName().toLowerCase();
         collection.getDocumentLock().lock();
         try {
@@ -47,21 +53,29 @@ public class DocumentService {
                     indexManager.createPropertyIndex(collectionName, "accountNumber");
                 }
                 String existingDocumentId = indexManager.searchInPropertyIndex(collectionName, "accountNumber", accountNumber);
+                System.out.println(existingDocumentId + " existing documentttttttt");
                 if (existingDocumentId != null) {
-                    return new ApiResponse("An account with the same account number already exists.", HttpStatus.BAD_REQUEST);
+                    return new ApiResponse("An account with the same account number already exists.", HttpStatus.CONFLICT);
                 }
             }
-            if (jsonData.containsKey("password")) {
-                String plainPassword = jsonData.get("password").toString();
-                String hashedPassword = PasswordHashing.hashPassword(plainPassword);
-                jsonData.put("password", hashedPassword);
+
+            System.out.println("TRYING TO HASH PASSWORDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+            if (jsonData.containsKey("password") && !document.isReplicated()) { // added the check for the flag
+                String potentialPassword = jsonData.get("password").toString();
+                System.out.println(PasswordHashing.isAlreadyHashed(potentialPassword) + " hashhhhhhhhhhhhhhhhhhhhhhhhhh");
+                if (!PasswordHashing.isAlreadyHashed(potentialPassword)) {
+                    System.out.println("PASSWORD HAVEN'T BEEN PROCESSED YET WAIT UNTIL WE HASH IT.............");
+                    String hashedPassword = PasswordHashing.hashPassword(potentialPassword);
+                    jsonData.put("password", hashedPassword);
+                }
             }
             if (document.isValidDocument(schemaValidator, collectionName)) {
-                if (document.getId() == null) {
-                    UUID id = UUID.randomUUID();
-                    document.setId(id.toString());
-                    document.getData().put("_id", id.toString()); // Store document's id
-                }
+                String documentId = document.getId();
+                int workerPort = affinityManager.getWorkerPort(documentId);   //adding affinity based on the document's id
+                document.setHasAffinity(true);
+                document.setNodeWithAffinity(workerPort);
+                System.out.println(document.getNodeWithAffinity());
+                System.out.println(document.hasAffinity());
                 List<String> indexedProperties = Arrays.asList("accountType", "hasInsurance", "balance", "accountNumber");
                 for (Object key : jsonData.keySet()) {
                     Object value = jsonData.get(key);
@@ -73,14 +87,14 @@ public class DocumentService {
                         indexManager.insertIntoPropertyIndex(collectionName, propertyName, value.toString(), document.getId());
                     }
                 }
-                ApiResponse response = DatabaseFileOperations.appendDocumentToFile(collectionName, document.getData());
+                ApiResponse response = DatabaseFileOperations.appendDocumentToFile(collectionName, document);
                 if (response.getMessage().contains("successfully")) {
                     int lastIndex = getJSONArrayLength(FileService.getCollectionFile(collectionName)) - 1;
                     indexManager.insertIntoIndex(collectionName, document.getId(), lastIndex);
                 }
                 return response;
             } else {
-                return new ApiResponse("Document does not match the schema for " + collectionName, HttpStatus.BAD_REQUEST);
+                return new ApiResponse("Document does not match the schema for " + collectionName, HttpStatus.CONFLICT);
             }
         } finally {
             collection.getDocumentLock().unlock();
@@ -117,7 +131,8 @@ public class DocumentService {
         }
     }
 
-    public ApiResponse deleteDocument(Collection collection, Document document) {
+    public synchronized ApiResponse deleteDocument(Collection collection, Document document) {
+        System.out.println("Thread " + Thread.currentThread().getName() + ": Entering deleteDocument method with document id: " + document.getId());
         String collectionName = collection.getCollectionName().toLowerCase();
         collection.getDocumentLock().lock();
         try {
@@ -134,9 +149,9 @@ public class DocumentService {
                         indexManager.deleteFromPropertyIndex(collectionName, propertyName, propertyValue);
                     }
                 }
-                return new ApiResponse("Document deleted successfully from " + collectionName, HttpStatus.OK);
+                return new ApiResponse("Document deleted successfully from " + collectionName, HttpStatus.ACCEPTED);
             } else {
-                return new ApiResponse("Failed to delete document from " + collectionName, HttpStatus.BAD_REQUEST);
+                return new ApiResponse("Failed to delete document from " + collectionName, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } finally {
             collection.getDocumentLock().unlock();
@@ -146,6 +161,7 @@ public class DocumentService {
     public ApiResponse updateDocumentProperty(Collection collection, Document document) {
         String collectionName = collection.getCollectionName().toLowerCase();
         String documentId = document.getId();
+        System.out.println("Attempting to update documentId: " + documentId + " on " + Thread.currentThread().getName());
         String propertyName = document.getPropertyName();
         String newPropertyValue = (String) document.getPropertyValue();
         Object castedValue = DataTypeUtil.castToDataType(newPropertyValue, collectionName, propertyName);

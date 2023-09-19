@@ -12,13 +12,18 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 public class WorkerController {
 
-    @Autowired
     AuthenticationService authenticationService;
-    @Autowired
+
     AffinityManager affinityManager;
 
-    @Autowired
     UserService userService;
+
+    @Autowired
+    public WorkerController(AuthenticationService authenticationService, UserService userService, AffinityManager affinityManager){
+        this.authenticationService = authenticationService;
+        this.userService = userService;
+        this.affinityManager = affinityManager;
+    }
 
     @GetMapping("/setCurrentWorkerName/{worker_name}")
     public ResponseEntity<String> setCurrentWorkerName(
@@ -30,8 +35,8 @@ public class WorkerController {
             return new ResponseEntity<>("Invalid credentials", HttpStatus.UNAUTHORIZED);
         }
         try {
-            affinityManager.setCurrentWorkerName(workerName);
-            System.out.println(affinityManager.getCurrentWorkerName());
+            affinityManager.setCurrentWorkerPort(workerName);
+            System.out.println(affinityManager.getCurrentWorkerPort());
             return new ResponseEntity<>("The current worker name is set to: " + workerName, HttpStatus.OK);
         } catch (Exception e) {
             System.out.println("Error setting worker name: " + e.getMessage());
@@ -45,7 +50,7 @@ public class WorkerController {
 //        return authenticationService.verifyCredentials(username, token);
 //    }
 
-    @GetMapping("/add/user")
+    @PostMapping("/add/user")
     public String addUser(@RequestHeader("adminUsername") String adminUsername,
                           @RequestHeader("adminPassword") String adminPassword,
                           @RequestHeader("accountNumber") String accountNumber,

@@ -8,6 +8,7 @@ import com.example.Database.query.QueryType;
 import com.example.Database.services.CollectionService;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -28,9 +29,14 @@ public class ReadCollectionsCommand implements QueryCommand {
         try {
             Database database = CommandUtils.getDatabase(query);
             List<String> collections = collectionService.readCollections(database);
-            return new ApiResponse(String.join(", ", collections));
+            return new ApiResponse(String.join(", ", collections), HttpStatus.ACCEPTED);
         } catch (Exception e) {
-            return new ApiResponse("Error reading collections: " + e.getMessage());
+            return new ApiResponse("Error reading collections: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @Override
+    public void broadcastOperation(JSONObject details) {
+
     }
 }

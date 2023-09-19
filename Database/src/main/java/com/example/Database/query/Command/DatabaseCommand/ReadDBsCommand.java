@@ -6,6 +6,7 @@ import com.example.Database.query.QueryType;
 import com.example.Database.services.DatabaseService;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -25,12 +26,17 @@ public class ReadDBsCommand implements QueryCommand {
         try {
             List<String> databases = databaseService.readDBs();
             if (databases.isEmpty()) {
-                return new ApiResponse("");
+                return new ApiResponse("", HttpStatus.NO_CONTENT);
             } else {
-                return new ApiResponse(String.join(", ", databases));
+                return new ApiResponse(String.join(", ", databases), HttpStatus.ACCEPTED);
             }
         } catch (Exception e) {
-            return new ApiResponse("Error retrieving databases: " + e.getMessage());
+            return new ApiResponse("Error retrieving databases: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @Override
+    public void broadcastOperation(JSONObject details) {
+
     }
 }

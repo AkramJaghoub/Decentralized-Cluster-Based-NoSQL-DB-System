@@ -20,6 +20,7 @@ public class DatabaseController {
 
     @PostMapping("/createDB/{db_name}")
     public ResponseEntity<String> createDatabase(@PathVariable("db_name") String dbName,
+                                                 @RequestHeader("X-Broadcast") String isBroadcasted,
                                                  @RequestHeader("username") String username,
                                                  @RequestHeader("password") String password) {
 
@@ -27,21 +28,21 @@ public class DatabaseController {
             return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);
-        ApiResponse response = queryManager.createDatabase(dbName);
-        return new ResponseEntity<>(response.getMessage(), response.getHttpStatus());
+        ApiResponse response = queryManager.createDatabase(dbName, isBroadcasted);
+        return new ResponseEntity<>(response.getMessage(), response.getStatus());
     }
 
     @DeleteMapping("/deleteDB/{db_name}")
     public ResponseEntity<String> deleteDatabase(@PathVariable("db_name") String dbName,
+                                                 @RequestHeader("X-Broadcast") String isBroadcasted,
                                                  @RequestHeader("username") String username,
                                                  @RequestHeader("password") String password) {
-
         if(authenticationService.isAdmin(username, password)){
             return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);
-        ApiResponse response = queryManager.deleteDatabase(dbName);
-        return new ResponseEntity<>(response.getMessage(), response.getHttpStatus());
+        ApiResponse response = queryManager.deleteDatabase(dbName, isBroadcasted);
+        return new ResponseEntity<>(response.getMessage(), response.getStatus());
     }
 
     @GetMapping("/fetchExistingDatabases")

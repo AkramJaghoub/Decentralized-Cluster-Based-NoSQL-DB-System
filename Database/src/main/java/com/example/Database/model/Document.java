@@ -9,11 +9,15 @@ public class Document {
     private JSONObject data;
     private String propertyName;
     private Object propertyValue;
+    private boolean hasAffinity;
+    private int nodeWithAffinity;
+    private boolean replication;
 
 
     public Document(JSONObject data) {
         this.data = data;
     }
+
 
     public Document(String id) {
         this.id = id;
@@ -45,6 +49,31 @@ public class Document {
 
     public void setPropertyValue(Object propertyValue) {
         this.propertyValue = propertyValue;
+    }
+
+
+    public boolean hasAffinity() {
+        return hasAffinity;
+    }
+
+    public void setHasAffinity(boolean hasAffinity) {
+        this.hasAffinity = hasAffinity;
+    }
+
+    public int getNodeWithAffinity() {
+        return nodeWithAffinity;
+    }
+
+    public void setNodeWithAffinity(int nodeWithAffinity) {
+        this.nodeWithAffinity = nodeWithAffinity;
+    }
+
+    public boolean isReplicated(){
+        return replication;
+    }
+
+    public void setReplication(boolean replication){
+        this.replication = replication;
     }
 
     public boolean isValidDocument(SchemaValidator validator, String collectionName) {

@@ -64,19 +64,18 @@
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>javax.servlet-api</artifactId>
-			<version>3.1.0</version> <!-- Use the appropriate version -->
+			<version>4.0.1</version> <!-- Use the appropriate version -->
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.jetbrains</groupId>
 			<artifactId>annotations</artifactId>
-			<version>RELEASE</version>
+			<version>24.0.1</version>
 			<scope>compile</scope>
 		</dependency>
 	</dependencies>
 
 	<build>
-		<finalName>Database</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>

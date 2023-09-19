@@ -7,4 +7,5 @@ import org.json.simple.JSONObject;
 public interface QueryCommand {
     QueryType getQueryType();
     ApiResponse execute(JSONObject query);
+    void broadcastOperation(JSONObject details);
 }

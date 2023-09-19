@@ -2,6 +2,7 @@ package com.example.Database.file;
 
 import com.example.Database.index.IndexManager;
 import com.example.Database.model.ApiResponse;
+import com.example.Database.model.Document;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;
@@ -12,8 +13,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Stream;
 
 public final class DatabaseFileOperations {
 
@@ -25,9 +28,9 @@ public final class DatabaseFileOperations {
             FileService.createDirectoryIfNotExist(dbDirectory);
             File schemasDirectory = new File(dbDirectory + "/schemas/");
             FileService.createDirectoryIfNotExist(schemasDirectory);
-            return new ApiResponse("database added successfully", HttpStatus.ACCEPTED);
+            return new ApiResponse("database added successfully", HttpStatus.CREATED);
         } else {
-            return new ApiResponse("Database already exists.", HttpStatus.BAD_REQUEST);
+            return new ApiResponse("Database already exists.", HttpStatus.CONFLICT);
         }
     }
 
@@ -40,7 +43,7 @@ public final class DatabaseFileOperations {
             FileUtils.deleteDirectory(dbDirectory);
             return new ApiResponse("Database has been successfully deleted.", HttpStatus.ACCEPTED);
         } catch (IOException e) {
-            return new ApiResponse("Failed to delete database: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return new ApiResponse("Failed to delete database: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -64,14 +67,16 @@ public final class DatabaseFileOperations {
         File collectionFile = FileService.getCollectionFile(collectionName);
         File schemaFile = FileService.getSchemaPath(collectionName);
         if (FileService.isFileExists(collectionFile.getPath())) {
-            return new ApiResponse("Collection already exists.", HttpStatus.BAD_REQUEST);
+            return new ApiResponse("Collection already exists.", HttpStatus.CONFLICT);
         }
         try {
-            Files.write(Paths.get(collectionFile.getAbsolutePath()), "[]".getBytes());
-            Files.write(Paths.get(schemaFile.getAbsolutePath()), jsonSchema.toString().getBytes());
-            return new ApiResponse("Collection has been successfully created", HttpStatus.ACCEPTED);
+            FileService.createDirectoryIfNotExist(schemaFile.getParentFile());
+            Files.write(Paths.get(collectionFile.toURI()), "[]".getBytes());
+            Files.write(Paths.get(schemaFile.toURI()), jsonSchema.toString().getBytes());
+            return new ApiResponse("Collection has been successfully created", HttpStatus.CREATED);
         } catch (IOException e) {
-            return new ApiResponse("Failed to create collection: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            e.printStackTrace();
+            return new ApiResponse("Failed to create collection: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -89,25 +94,11 @@ public final class DatabaseFileOperations {
         }
         boolean isCollectionDeleted = collectionFile.delete();
         boolean isSchemaDeleted = schemaFile.delete();
-        deleteDirectoryRecursively(indexDirectory);
+        FileService.deleteDirectoryRecursively(indexDirectory.toPath());
         if (isCollectionDeleted && isSchemaDeleted) {
             return new ApiResponse("Collection, and it's schema and indexes have been successfully deleted", HttpStatus.ACCEPTED);
         } else {
-            return new ApiResponse("Failed to delete collection, associated schema, or index.", HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    public static void deleteDirectoryRecursively(File directory) {
-        if (directory.exists()) {
-            for (File file : Objects.requireNonNull(directory.listFiles())) {
-                System.out.println(file.getAbsolutePath());
-                if (file.isDirectory()) {
-                    deleteDirectoryRecursively(file);
-                } else {
-                    file.delete();
-                }
-            }
-            directory.delete();
+            return new ApiResponse("Failed to delete collection, associated schema, or index.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -133,24 +124,29 @@ public final class DatabaseFileOperations {
     }
 
     @SuppressWarnings("unchecked")
-    public static ApiResponse appendDocumentToFile(String collectionName, JSONObject document) {
+    public synchronized static ApiResponse appendDocumentToFile(String collectionName, Document document) {
         File collectionFile = FileService.getCollectionFile(collectionName);
+        System.out.println(collectionFile.exists() + " existttttttttttttttt for collection file PATH");
+        System.out.println("Writing to file at: " + collectionFile.getAbsolutePath());
         JSONArray jsonArray = FileService.readJsonArrayFile(collectionFile);
+        System.out.println(jsonArray + " json array");
         if (jsonArray == null) {
-            return new ApiResponse("Failed to read the existing documents", HttpStatus.BAD_REQUEST);
+            return new ApiResponse("Failed to read the existing documents", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        jsonArray.add(document);
+        System.out.println(document.getData() + " dataaaaaa");
+        jsonArray.add(document.getData());
         boolean writeStatus = FileService.writeJsonArrayFile(collectionFile, jsonArray);
         if (!writeStatus) {
-            return new ApiResponse("Failed to append document.", HttpStatus.BAD_REQUEST);
+            return new ApiResponse("Failed to append document.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return new ApiResponse("Document added successfully.", HttpStatus.ACCEPTED);
+        return new ApiResponse("Document added successfully.", HttpStatus.CREATED);
     }
 
     @SuppressWarnings("unchecked")
     private static int getDocumentIndex(String collectionName, String documentId, JSONArray jsonArray, IndexManager indexManager) throws Exception {
         File collectionFile = FileService.getCollectionFile(collectionName);
         JSONArray tempArray = FileService.readJsonArrayFile(collectionFile);
+        System.out.println(tempArray + " temp arrayyyyyyyyyyyyyyyyyyyy HORRAYYYYYYYYY");
         if (tempArray == null) {
             throw new Exception("Failed to read the existing documents for " + collectionName);
         }
@@ -222,7 +218,8 @@ public final class DatabaseFileOperations {
             JSONObject documentData = (JSONObject) jsonArray.get(index);
             Object oldValue = documentData.get(propertyName);
             if (Objects.equals(oldValue, newValue)) {
-                return new ApiResponse("No changes needed. Document with id " + documentId + " in " + collectionName + " already has the same value for property " + propertyName, HttpStatus.BAD_REQUEST);
+                System.out.println("No update needed for documentId: " + documentId + ". Old value: " + oldValue + ", New Value: " + newValue);
+                return new ApiResponse("No changes needed. Document with id " + documentId + " in " + collectionName + " already has the same value for property " + propertyName, HttpStatus.CONFLICT);
             }
             documentData.put(propertyName, newValue);
             File collectionFile = FileService.getCollectionFile(collectionName);
@@ -233,9 +230,9 @@ public final class DatabaseFileOperations {
             }
             return writeStatus ?
                     new ApiResponse("Document with id " + documentId + " updated successfully in " + collectionName, HttpStatus.ACCEPTED) :
-                    new ApiResponse("Failed to update document with id " + documentId + " in " + collectionName, HttpStatus.BAD_REQUEST);
+                    new ApiResponse("Failed to update document with id " + documentId + " in " + collectionName, HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
-            return new ApiResponse("Error updating document property: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return new ApiResponse("Error updating document property: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

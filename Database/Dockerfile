@@ -1,7 +1,9 @@
 FROM openjdk:17
 
-ADD target/Database.jar Database.jar
+WORKDIR /app
+
+COPY . /app
 
 EXPOSE 9000
 
-CMD ["java", "-jar", "Database.jar"]
+CMD ["java", "-jar", "/app/target/Database-1.0.jar"]

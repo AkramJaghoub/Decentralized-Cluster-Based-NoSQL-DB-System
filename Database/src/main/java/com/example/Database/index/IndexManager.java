@@ -1,6 +1,7 @@
 package com.example.Database.index;
 
 import com.example.Database.file.FileService;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import java.io.*;
 import java.util.*;
@@ -13,12 +14,13 @@ public class IndexManager {
     private final Map<String, Index> indexMap = new ConcurrentHashMap<>();
     private final Map<String, PropertyIndex> propertyIndexMap = new ConcurrentHashMap<>();
 
-    private boolean indexesLoaded = false;
-
-    public synchronized void loadAllIndexesOnce() {
-        if (!indexesLoaded) {
-            loadAllIndexes();
-            indexesLoaded = true;
+    @PostConstruct
+    public void init() {
+        List<String> allDatabases = FileService.getAllKnownDatabases();
+        for (String dbName : allDatabases) {
+            System.out.println(dbName);
+            FileService.setDatabaseDirectory(dbName);
+            this.loadAllIndexes();
         }
     }
 
@@ -27,7 +29,6 @@ public class IndexManager {
         File databasePath = new File(FileService.getDatabasePath().toURI());
         File indexesDirectory = new File(databasePath, "indexes");
         if(!indexesDirectory.exists()){
-            System.out.println("Ssssssssssssssss");
             return;
         }
         String[] collectionDirectories = indexesDirectory.list();
@@ -69,12 +70,10 @@ public class IndexManager {
         loadFromFile(propertyIndexPath, propertyIndex);
     }
 
-    private void loadFromFile(String path, Object index) {
+    private synchronized void loadFromFile(String path, Object index) {
         if (!FileService.isFileExists(path)) {
-            System.err.println("File " + path + " doesn't exist.");
             return;
         }
-        System.out.println("File " + path + " Loading...");
         Map<String, String> indexData = FileService.readIndexFile(path);
         for (Map.Entry<String, String> entry : indexData.entrySet()) {
             if(index instanceof Index) {
@@ -101,7 +100,7 @@ public class IndexManager {
         }
     }
 
-    public void insertIntoIndex(String collectionName, String documentId, int index) {
+    public synchronized void insertIntoIndex(String collectionName, String documentId, int index) {
         String existingValue = getIndex(collectionName).search(documentId);
         if (existingValue == null) {
             getIndex(collectionName).insert(documentId, String.valueOf(index));
@@ -109,7 +108,7 @@ public class IndexManager {
         }
     }
 
-    public void deleteFromIndex(String collectionName, String documentId) {
+    public synchronized void deleteFromIndex(String collectionName, String documentId) {
         Index index = getIndex(collectionName);
         int deletedIndex = -1;
         List<Map.Entry<String, String>> allEntries = new ArrayList<>(index.getBPlusTree().getAllEntries());
@@ -141,7 +140,7 @@ public class IndexManager {
         return getIndex(collectionName).search(documentId);
     }
 
-    public void createPropertyIndex(String collectionName, String propertyName) {
+    public synchronized void createPropertyIndex(String collectionName, String propertyName) {
         String propertyIndexKey = collectionName + "_" + propertyName;
         if (!propertyIndexMap.containsKey(propertyIndexKey)) {
             PropertyIndex index = new PropertyIndex();
@@ -149,20 +148,26 @@ public class IndexManager {
         }
     }
 
-    public void insertIntoPropertyIndex(String collectionName, String propertyName, String propertyValue, String documentId) {
+    public synchronized void insertIntoPropertyIndex(String collectionName, String propertyName, String propertyValue, String documentId) {
+        System.out.println("Thread " + Thread.currentThread().getName() + ": Inserting into property index for collection: " + collectionName + ", property: " + propertyName);
         String propertyIndexKey = collectionName + "_" + propertyName;
         PropertyIndex propertyIndex = propertyIndexMap.get(propertyIndexKey);
         if (propertyIndex == null) {
             throw new IllegalArgumentException("Property Index does not exist.");
         }
         String existingDocumentId = propertyIndex.search(propertyValue); // Convert propertyValue to String
-        if (existingDocumentId == null) {
+        System.out.println(existingDocumentId + " existing documentttttttt ");
+        System.out.println(documentId + " nEW DOC IDDDDDDDDDDDDDDDDDDDD");
+        if (existingDocumentId == null || !existingDocumentId.equals(documentId)) {
+            System.out.println("Thread " + Thread.currentThread().getName() + ": Inserted new entry in property index for collection: " + collectionName + ", property: " + propertyName);
             propertyIndex.insert(propertyValue, documentId); // Convert propertyValue to String
             FileService.appendToIndexFile(FileService.getPropertyIndexFilePath(collectionName, propertyName), propertyValue, documentId); // Convert propertyValue to String
+        }else{
+            System.out.println("Thread " + Thread.currentThread().getName() + ": Entry already exists in property index for collection: " + collectionName + ", property: " + propertyName);
         }
     }
 
-    public String searchInPropertyIndex(String collectionName, String propertyName, String propertyValue) {
+    public synchronized String searchInPropertyIndex(String collectionName, String propertyName, String propertyValue) {
         String propertyIndexKey = collectionName + "_" + propertyName;
         PropertyIndex propertyIndex = propertyIndexMap.get(propertyIndexKey);
         if (propertyIndex  == null) {
@@ -172,7 +177,7 @@ public class IndexManager {
         return propertyIndex.search(propertyValue);
     }
 
-    public void deleteFromPropertyIndex(String collectionName, String propertyName, String propertyValue) {
+    public synchronized void deleteFromPropertyIndex(String collectionName, String propertyName, String propertyValue) {
         String propertyIndexKey = collectionName + "_" + propertyName;
         PropertyIndex propertyIndex = propertyIndexMap.get(propertyIndexKey);
         if (propertyIndex == null) {

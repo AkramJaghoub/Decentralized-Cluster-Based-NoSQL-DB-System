@@ -26,29 +26,31 @@ public class CollectionController {
     }
 
     @PostMapping("/{db_name}/createCol/{collection_name}")
-    public String createCollection(@PathVariable("db_name") String dbName,
-                                   @PathVariable("collection_name") String collectionName,
-                                   @RequestHeader("username") String username,
-                                   @RequestHeader("password") String password) {
-        if(authenticationService.isAdmin(username, password)){
-            return "User is not authorized";
+    public ResponseEntity<String> createCollection(@PathVariable("db_name") String dbName,
+                                                   @PathVariable("collection_name") String collectionName,
+                                                   @RequestHeader("X-Broadcast") String isBroadcasted,
+                                                   @RequestHeader("username") String username,
+                                                   @RequestHeader("password") String password) {
+        if (authenticationService.isAdmin(username, password)) {
+            return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);
-        ApiResponse response = queryManager.createCollection(dbName, collectionName, SchemaBuilder.buildSchema().getSchemaAsJSON());
-        return response.getMessage();
+        ApiResponse response = queryManager.createCollection(dbName, collectionName, SchemaBuilder.buildSchema().getSchemaAsJSON(), isBroadcasted);
+        return new ResponseEntity<>(response.getMessage(), response.getStatus());
     }
 
     @DeleteMapping("/{db_name}/deleteCol/{collection_name}")
-    public String deleteCollection(@PathVariable("db_name") String dbName,
-                                   @PathVariable("collection_name") String collectionName,
-                                   @RequestHeader("username") String username,
-                                   @RequestHeader("password") String password) {
-        if(authenticationService.isAdmin(username, password)){
-            return "User is not authorized";
+    public ResponseEntity<String> deleteCollection(@PathVariable("db_name") String dbName,
+                                                   @PathVariable("collection_name") String collectionName,
+                                                   @RequestHeader("X-Broadcast") String isBroadcasted,
+                                                   @RequestHeader("username") String username,
+                                                   @RequestHeader("password") String password) {
+        if (authenticationService.isAdmin(username, password)) {
+            return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);
-        ApiResponse response = queryManager.deleteCollection(dbName, collectionName);
-        return response.getMessage();
+        ApiResponse response = queryManager.deleteCollection(dbName, collectionName, isBroadcasted);
+        return new ResponseEntity<>(response.getMessage(), response.getStatus());
     }
 
     @GetMapping("/fetchExistingCollections/{db_name}")
