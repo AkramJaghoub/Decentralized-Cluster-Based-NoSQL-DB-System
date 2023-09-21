@@ -34,9 +34,4 @@ public class ReadCollectionsCommand implements QueryCommand {
             return new ApiResponse("Error reading collections: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
-    @Override
-    public void broadcastOperation(JSONObject details) {
-
-    }
 }

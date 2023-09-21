@@ -26,14 +26,8 @@ public class WorkerController {
     }
 
     @GetMapping("/setCurrentWorkerName/{worker_name}")
-    public ResponseEntity<String> setCurrentWorkerName(
-            @PathVariable("worker_name") String workerName,
-            @RequestHeader("username") String username,
-            @RequestHeader("password") String password) {
-             System.out.println("Received request to set worker name to: " + workerName + " with user: " + username);
-        if (authenticationService.isAdmin(username, password)) {
-            return new ResponseEntity<>("Invalid credentials", HttpStatus.UNAUTHORIZED);
-        }
+    public ResponseEntity<String> setCurrentWorkerName(@PathVariable("worker_name") String workerName) {
+        System.out.println("Received request to set worker name to: " + workerName);
         try {
             affinityManager.setCurrentWorkerPort(workerName);
             System.out.println(affinityManager.getCurrentWorkerPort());
@@ -42,22 +36,5 @@ public class WorkerController {
             System.out.println("Error setting worker name: " + e.getMessage());
             return new ResponseEntity<>("Error setting worker name: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }
-
-//    @GetMapping("/add/user")
-//    public String verifyCredentials(@RequestHeader String username,
-//                                    @RequestHeader String token) {
-//        return authenticationService.verifyCredentials(username, token);
-//    }
-
-    @PostMapping("/add/user")
-    public String addUser(@RequestHeader("adminUsername") String adminUsername,
-                          @RequestHeader("adminPassword") String adminPassword,
-                          @RequestHeader("accountNumber") String accountNumber,
-                          @RequestHeader("password") String password) {
-        if(authenticationService.isAdmin(adminUsername, adminPassword)){
-            return "User is not authorized";
-        }
-        return userService.addUser(accountNumber, password);
     }
 }

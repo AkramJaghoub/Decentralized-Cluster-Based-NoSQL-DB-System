@@ -59,7 +59,6 @@ public class DeleteCollectionCommand implements QueryCommand {
         Database database = (Database) details.get("database");
         Collection collection = (Collection) details.get("collection");
         int originatingWorkerPort = (int) details.get("originatingWorkerPort");
-        System.out.println(originatingWorkerPort + " ssssssssssssssssssssssssssssssssssssssssssssss");
         for (int i = 1; i <= affinityManager.getNumberOfNodes(); i++) {
             if (i == originatingWorkerPort) {
                 System.out.println("[SKIP] Skipping broadcast to worker " + i + " (origin node)...");

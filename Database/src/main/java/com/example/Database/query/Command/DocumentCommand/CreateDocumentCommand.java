@@ -40,26 +40,14 @@ public class CreateDocumentCommand implements QueryCommand {
     @Override
     @SuppressWarnings("unchecked")
     public ApiResponse execute(JSONObject commandJson) {
-        System.out.println("[INFO] Starting execute method...");
-
         try {
-            System.out.println("[INFO] Extracting database from commandJson...");
             Database database = CommandUtils.getDatabase(commandJson);
-
-            System.out.println("[INFO] Extracting collection from commandJson...");
             Collection collection = CommandUtils.getCollection(commandJson);
-
-            System.out.println("[INFO] Extracting documentJson from commandJson...");
             JSONObject documentJson = CommandUtils.getDocumentJson(commandJson);
-
-            System.out.println("[INFO] Converting documentJson to Document object...");
             documentJson = FileService.addIdToDocument(documentJson);
-
-            System.out.println(documentJson + " in execute");
             Document document = new Document(documentJson);
             document.setId((String) documentJson.get("_id"));
 
-            System.out.println("[INFO] Checking broadcast condition...");
             boolean isBroadcasted = "true".equalsIgnoreCase(documentJson.get("X-Broadcast").toString());
             int workerWithAffinity = affinityManager.getWorkerPort(document.getId());
             int currentWorkerPort = affinityManager.getCurrentWorkerPort();
@@ -69,13 +57,12 @@ public class CreateDocumentCommand implements QueryCommand {
                 document.setReplication(true); //set replication to true to not change on the data and avoid duplications
                 return redirectionService.redirectToWorkerForCreation(database, collection, document, workerWithAffinity);
             }
-            System.out.println("[INFO] Checking broadcast flag...");
             if (isBroadcasted) {
                 System.out.println("[BROADCAST] Document received for replication...");
-                return documentService.createDocument(collection, document);
+                return documentService.createDocument(database, collection, document);
             } else {
                 System.out.println("[INFO] Not broadcasting. Creating document on the current node...");
-                ApiResponse response = documentService.createDocument(collection, document);
+                ApiResponse response = documentService.createDocument(database, collection, document);
                 if (response.getStatus() == HttpStatus.CREATED) {
                     System.out.println("[INFO] Document created successfully. Broadcasting creation to other nodes...");
                     JSONObject details = new JSONObject();
@@ -88,7 +75,6 @@ public class CreateDocumentCommand implements QueryCommand {
                 return response;
             }
         } catch (Exception e) {
-            System.out.println("[ERROR] Exception occurred in execute method. Message: " + e.getMessage());
             throw new RuntimeException("[ERROR] Exception occurred in execute method.", e);
         }
     }
@@ -99,13 +85,12 @@ public class CreateDocumentCommand implements QueryCommand {
         Collection collection = (Collection) details.get("collection");
         Document document = (Document) details.get("document");
         int originatingWorkerPort = (int) details.get("originatingWorkerPort");
-        System.out.println(originatingWorkerPort + " original worker portttttttttttt");
         JSONObject documentJson = new JSONObject(document.getData());
         for (int i = 1; i <= affinityManager.getNumberOfNodes(); i++) {
             if (i == originatingWorkerPort)
                 continue; // skip the worker who has done the operation
             String url = "http://worker" + i + ":9000/api/" + database.getDatabaseName() + "/" + collection.getCollectionName() + "/createDoc";
-            broadcastService.broadcast(url, HttpMethod.POST, true, documentJson);
+            broadcastService.broadcast(url, HttpMethod.POST, documentJson, true);
         }
     }
 }

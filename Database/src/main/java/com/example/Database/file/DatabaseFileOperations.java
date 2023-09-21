@@ -126,14 +126,10 @@ public final class DatabaseFileOperations {
     @SuppressWarnings("unchecked")
     public synchronized static ApiResponse appendDocumentToFile(String collectionName, Document document) {
         File collectionFile = FileService.getCollectionFile(collectionName);
-        System.out.println(collectionFile.exists() + " existttttttttttttttt for collection file PATH");
-        System.out.println("Writing to file at: " + collectionFile.getAbsolutePath());
         JSONArray jsonArray = FileService.readJsonArrayFile(collectionFile);
-        System.out.println(jsonArray + " json array");
         if (jsonArray == null) {
             return new ApiResponse("Failed to read the existing documents", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        System.out.println(document.getData() + " dataaaaaa");
         jsonArray.add(document.getData());
         boolean writeStatus = FileService.writeJsonArrayFile(collectionFile, jsonArray);
         if (!writeStatus) {
@@ -146,7 +142,6 @@ public final class DatabaseFileOperations {
     private static int getDocumentIndex(String collectionName, String documentId, JSONArray jsonArray, IndexManager indexManager) throws Exception {
         File collectionFile = FileService.getCollectionFile(collectionName);
         JSONArray tempArray = FileService.readJsonArrayFile(collectionFile);
-        System.out.println(tempArray + " temp arrayyyyyyyyyyyyyyyyyyyy HORRAYYYYYYYYY");
         if (tempArray == null) {
             throw new Exception("Failed to read the existing documents for " + collectionName);
         }

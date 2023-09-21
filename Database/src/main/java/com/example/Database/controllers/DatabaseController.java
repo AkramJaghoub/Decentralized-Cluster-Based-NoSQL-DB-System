@@ -24,7 +24,7 @@ public class DatabaseController {
                                                  @RequestHeader("username") String username,
                                                  @RequestHeader("password") String password) {
 
-        if(authenticationService.isAdmin(username, password)){
+        if(!authenticationService.isAdmin(username, password)){
             return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);
@@ -37,7 +37,7 @@ public class DatabaseController {
                                                  @RequestHeader("X-Broadcast") String isBroadcasted,
                                                  @RequestHeader("username") String username,
                                                  @RequestHeader("password") String password) {
-        if(authenticationService.isAdmin(username, password)){
+        if(!authenticationService.isAdmin(username, password)){
             return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);
@@ -49,7 +49,7 @@ public class DatabaseController {
     public ResponseEntity<List<String>> fetchExistingDatabases(
             @RequestHeader("username") String username,
             @RequestHeader("password") String password) {
-        if (authenticationService.isAdmin(username, password)) {
+        if (!authenticationService.isAdmin(username, password)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         List<String> databases = queryManager.readDatabases();

@@ -55,7 +55,6 @@ public class DeleteDBCommand implements QueryCommand {
         System.out.println("[INFO] Starting broadcasting database deletion to others..");
         Database database = (Database) details.get("database");
         int originatingWorkerPort = (int) details.get("originatingWorkerPort");
-        System.out.println(originatingWorkerPort + " ssssssssssssssssssssssssssssssssssssssssssssss");
         for (int i = 1; i <= affinityManager.getNumberOfNodes(); i++) {
             if (i == originatingWorkerPort) {
                 System.out.println("[SKIP] Skipping broadcast to worker " + i + " (origin node)...");

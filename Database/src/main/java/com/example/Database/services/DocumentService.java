@@ -6,6 +6,7 @@ import com.example.Database.file.FileService;
 import com.example.Database.index.IndexManager;
 import com.example.Database.model.ApiResponse;
 import com.example.Database.model.Collection;
+import com.example.Database.model.Database;
 import com.example.Database.model.Document;
 import com.example.Database.schema.SchemaValidator;
 import com.example.Database.schema.datatype.DataTypeUtil;
@@ -20,24 +21,29 @@ import java.io.File;
 
 import org.json.simple.JSONObject;
 
+import javax.print.Doc;
+import javax.xml.crypto.Data;
+
 @Service
 public class DocumentService {
 
     private final SchemaValidator schemaValidator;
     private final IndexManager indexManager;
     private final AffinityManager affinityManager;
+    private AccountDirectoryService accountDirectoryService;
 
 
     @Autowired
-    public DocumentService(SchemaValidator schemaValidator, IndexManager indexManager, AffinityManager affinityManager) {
+    public DocumentService(SchemaValidator schemaValidator, IndexManager indexManager,
+                           AffinityManager affinityManager, AccountDirectoryService accountDirectoryService) {
         this.schemaValidator = schemaValidator;
         this.indexManager = indexManager;
         this.affinityManager = affinityManager;
+        this.accountDirectoryService = accountDirectoryService;
     }
 
     @SuppressWarnings("unchecked")
-    public ApiResponse createDocument(Collection collection, Document document) {
-        System.out.println("Thread " + Thread.currentThread().getName() + ": Entering createDocument method with document id: " + document.getId());
+    public ApiResponse createDocument(Database database, Collection collection, Document document) {
         String collectionName = collection.getCollectionName().toLowerCase();
         collection.getDocumentLock().lock();
         try {
@@ -53,18 +59,14 @@ public class DocumentService {
                     indexManager.createPropertyIndex(collectionName, "accountNumber");
                 }
                 String existingDocumentId = indexManager.searchInPropertyIndex(collectionName, "accountNumber", accountNumber);
-                System.out.println(existingDocumentId + " existing documentttttttt");
                 if (existingDocumentId != null) {
                     return new ApiResponse("An account with the same account number already exists.", HttpStatus.CONFLICT);
                 }
             }
-
-            System.out.println("TRYING TO HASH PASSWORDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
-            if (jsonData.containsKey("password") && !document.isReplicated()) { // added the check for the flag
+            if (jsonData.containsKey("password") && !document.isReplicated()) {
                 String potentialPassword = jsonData.get("password").toString();
-                System.out.println(PasswordHashing.isAlreadyHashed(potentialPassword) + " hashhhhhhhhhhhhhhhhhhhhhhhhhh");
                 if (!PasswordHashing.isAlreadyHashed(potentialPassword)) {
-                    System.out.println("PASSWORD HAVEN'T BEEN PROCESSED YET WAIT UNTIL WE HASH IT.............");
+                    System.out.println("PASSWORD HAVEN'T BEEN PROCESSED YET WAIT UNTIL IT IS HASHED.............");
                     String hashedPassword = PasswordHashing.hashPassword(potentialPassword);
                     jsonData.put("password", hashedPassword);
                 }
@@ -74,9 +76,7 @@ public class DocumentService {
                 int workerPort = affinityManager.getWorkerPort(documentId);   //adding affinity based on the document's id
                 document.setHasAffinity(true);
                 document.setNodeWithAffinity(workerPort);
-                System.out.println(document.getNodeWithAffinity());
-                System.out.println(document.hasAffinity());
-                List<String> indexedProperties = Arrays.asList("accountType", "hasInsurance", "balance", "accountNumber");
+                List<String> indexedProperties = Arrays.asList("accountType", "hasInsurance", "balance", "accountNumber", "clientName");
                 for (Object key : jsonData.keySet()) {
                     Object value = jsonData.get(key);
                     if (key != null && value != null && indexedProperties.contains(key.toString())) {
@@ -87,8 +87,9 @@ public class DocumentService {
                         indexManager.insertIntoPropertyIndex(collectionName, propertyName, value.toString(), document.getId());
                     }
                 }
+                accountDirectoryService.registerAccount(accountNumber, database.getDatabaseName(), collectionName, documentId);
                 ApiResponse response = DatabaseFileOperations.appendDocumentToFile(collectionName, document);
-                if (response.getMessage().contains("successfully")) {
+                if (response.getStatus() == HttpStatus.CREATED) {
                     int lastIndex = getJSONArrayLength(FileService.getCollectionFile(collectionName)) - 1;
                     indexManager.insertIntoIndex(collectionName, document.getId(), lastIndex);
                 }
@@ -132,7 +133,6 @@ public class DocumentService {
     }
 
     public synchronized ApiResponse deleteDocument(Collection collection, Document document) {
-        System.out.println("Thread " + Thread.currentThread().getName() + ": Entering deleteDocument method with document id: " + document.getId());
         String collectionName = collection.getCollectionName().toLowerCase();
         collection.getDocumentLock().lock();
         try {
@@ -161,9 +161,8 @@ public class DocumentService {
     public ApiResponse updateDocumentProperty(Collection collection, Document document) {
         String collectionName = collection.getCollectionName().toLowerCase();
         String documentId = document.getId();
-        System.out.println("Attempting to update documentId: " + documentId + " on " + Thread.currentThread().getName());
         String propertyName = document.getPropertyName();
-        String newPropertyValue = (String) document.getPropertyValue();
+        String newPropertyValue = document.getPropertyValue().toString();
         Object castedValue = DataTypeUtil.castToDataType(newPropertyValue, collectionName, propertyName);
         String castedValueString = castedValue.toString();
         collection.getDocumentLock().lock();
@@ -176,6 +175,32 @@ public class DocumentService {
                 indexManager.insertIntoPropertyIndex(collectionName, propertyName, castedValueString, documentId);
             }
             return response;
+        } finally {
+            collection.getDocumentLock().unlock();
+        }
+    }
+
+    public ApiResponse searchProperty(Collection collection, Document document, String propertyName) {
+        System.out.println("searching for " + propertyName + " property in document: " + document.getId());
+        String collectionName = collection.getCollectionName().toLowerCase();
+        collection.getDocumentLock().lock();
+        try {
+            String indexResult = indexManager.searchInIndex(collectionName, document.getId()); //search for the document based on the document's id
+            if (indexResult == null) {
+                return new ApiResponse("Document not found", HttpStatus.NOT_FOUND);
+            }
+            int index = Integer.parseInt(indexResult);
+            JSONObject foundDocument = DatabaseFileOperations.readDocumentFromFile(collectionName, index); //get the document content
+            if (foundDocument != null && foundDocument.containsKey(propertyName)) {
+                String propertyValueResult = indexManager.searchInPropertyIndex(collectionName, propertyName, document.getId()); //search for the property value
+                if (propertyValueResult != null) {
+                    return new ApiResponse(propertyValueResult, HttpStatus.OK);
+                } else {
+                    return new ApiResponse("Property not found", HttpStatus.NOT_FOUND);
+                }
+            } else {
+                return new ApiResponse("Property not found", HttpStatus.NOT_FOUND);
+            }
         } finally {
             collection.getDocumentLock().unlock();
         }

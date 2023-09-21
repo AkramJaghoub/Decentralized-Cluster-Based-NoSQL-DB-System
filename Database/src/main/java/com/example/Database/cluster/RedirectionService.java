@@ -34,7 +34,6 @@ public class RedirectionService {
         String url = "http://worker" + workerPort + ":9000/api/" + database.getDatabaseName()
                 + "/" + collection.getCollectionName() + "/createDoc";
         System.out.println("[REDIRECT] Constructed redirect URL: " + url);
-        System.out.println(document.getData() + " dataaaaaaa hahahahaha");
         HttpEntity<String> requestEntity = new HttpEntity<>(document.getData().toJSONString(), headers);
         ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
         return new ApiResponse(responseEntity.getBody(), (HttpStatus) responseEntity.getStatusCode());
@@ -54,8 +53,8 @@ public class RedirectionService {
     public ApiResponse redirectToWorkerForUpdate(Database database, Collection collection, Document document, int workerPort) {
         System.out.println("[INFO] Starting redirectToNodeWithAffinity for update method...");
         HttpHeaders headers = getHeaders();
-        headers.set("newPropertyValue", (String) document.getPropertyValue());
-        String url = "http://" + workerPort + ":9000/api/" + database.getDatabaseName() + "/"
+        headers.set("newPropertyValue", document.getPropertyValue().toString());
+        String url = "http://worker" + workerPort + ":9000/api/" + database.getDatabaseName() + "/"
                 + collection.getCollectionName() + "/updateDoc/" + document.getPropertyName() + "?doc_id=" + document.getId();
         System.out.println("[REDIRECT] Constructed redirect URL: " + url);
         HttpEntity<JSONObject> requestEntity = new HttpEntity<>(headers);

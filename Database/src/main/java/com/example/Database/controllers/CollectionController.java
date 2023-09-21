@@ -31,7 +31,7 @@ public class CollectionController {
                                                    @RequestHeader("X-Broadcast") String isBroadcasted,
                                                    @RequestHeader("username") String username,
                                                    @RequestHeader("password") String password) {
-        if (authenticationService.isAdmin(username, password)) {
+        if (!authenticationService.isAdmin(username, password)) {
             return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);
@@ -45,7 +45,8 @@ public class CollectionController {
                                                    @RequestHeader("X-Broadcast") String isBroadcasted,
                                                    @RequestHeader("username") String username,
                                                    @RequestHeader("password") String password) {
-        if (authenticationService.isAdmin(username, password)) {
+
+        if (!authenticationService.isAdmin(username, password)) {
             return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);
@@ -58,7 +59,7 @@ public class CollectionController {
             @PathVariable("db_name") String dbName,
             @RequestHeader("username") String username,
             @RequestHeader("password") String password) {
-        if (authenticationService.isAdmin(username, password)) {
+        if (!authenticationService.isAdmin(username, password)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         FileService.setDatabaseDirectory(dbName);

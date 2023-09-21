@@ -2,6 +2,7 @@ package com.example.Database.file;
 
 import com.example.Database.index.Index;
 import com.example.Database.index.PropertyIndex;
+import com.example.Database.model.AccountReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -10,19 +11,22 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import java.io.*;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 public final class FileService {
     private static final String FILE_PATH = "src/main/resources/databases";
     private static String DB_DIRECTORY;
 
-    private FileService(){}
+    private FileService() {
+    }
 
     public static JSONObject readSchema(String collectionName) {
         try {
@@ -41,11 +45,44 @@ public final class FileService {
     public static JsonNode readAdminCredentialsFromJson() {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            File jsonFile = new File(adminJsonFilePath());
+            File jsonFile = new File(getUserJsonPath("admin"));
             return objectMapper.readTree(jsonFile);
         } catch (IOException e) {
             throw new RuntimeException("Error reading admin credentials from JSON", e);
         }
+    }
+
+
+    public static synchronized void saveAccountDirectory(Map<String, AccountReference> accountDirectory) {
+        System.out.println(accountDirectory.entrySet() + " is being added into the directoryyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
+        System.out.println(FileService.getRootFile());
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FileService.getRootFile() + "/accountDirectory.json"))) {
+            for (Map.Entry<String, AccountReference> entry : accountDirectory.entrySet()) {
+                System.out.println(entry.getKey() + "," + entry.getValue().getDatabaseName() + "," +
+                        entry.getValue().getCollectionName() + "," + entry.getValue().getDocumentId());
+                writer.write(entry.getKey() + "," + entry.getValue().getDatabaseName() + "," +
+                        entry.getValue().getCollectionName() + "," + entry.getValue().getDocumentId());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            System.err.println("Error saving the account directory: " + e.getMessage());
+        }
+    }
+
+    public static Map<String, AccountReference> loadAccountDirectory() {
+        Map<String, AccountReference> directory = new ConcurrentHashMap<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(FileService.getRootFile()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                directory.put(parts[0], new AccountReference(parts[1], parts[2], parts[3]));
+            }
+        } catch (FileNotFoundException e) {
+            System.err.println("Account directory not found. This is normal if the system is just set up.");
+        } catch (IOException e) {
+            System.err.println("Error loading the account directory: " + e.getMessage());
+        }
+        return directory;
     }
 
 
@@ -77,6 +114,12 @@ public final class FileService {
             }
         }
     }
+
+   public static int getJSONArrayLength(File collectionFile) {
+       JSONArray jsonArray = FileService.readJsonArrayFile(collectionFile);
+       return jsonArray != null ? jsonArray.size() : 0;
+   }
+
 
     public static File getRootFile(){
         return new File(FILE_PATH);
@@ -118,9 +161,6 @@ public final class FileService {
         return fileName.endsWith("_property_index.txt");
     }
 
-    public static String adminJsonFilePath(){
-        return "src/main/resources/static/admin.json";
-    }
 
     public static boolean isFileExists(String filePath){
         Path path = Paths.get(filePath);
@@ -142,13 +182,49 @@ public final class FileService {
         return databases;
     }
 
-    public static String readFileAsString(File file) {
-        try {
-            return new String(Files.readAllBytes(Paths.get(file.getPath())));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    public static JSONObject readJsonObjectFile(File file) {
+        JSONParser parser = new JSONParser();
+        try (FileReader reader = new FileReader(file)) {
+            if (file.length() == 0) {
+                return new JSONObject();
+            }
+            Object obj = parser.parse(reader);
+            return (JSONObject) obj;
+        } catch (IOException | ParseException e) {
+            e.printStackTrace();
+            System.err.println("Error while reading JSON file: " + e.getMessage());
+            return null;
         }
     }
+
+    public static void writeJsonObjectFile(File file, JSONObject jsonObject) {
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.err.println("Error while creating the file: " + e.getMessage());
+                return;
+            }
+        }
+        try (RandomAccessFile stream = new RandomAccessFile(file, "rw");
+           FileChannel channel = stream.getChannel()) {
+            channel.truncate(0);
+            byte[] bytes = jsonObject.toJSONString().getBytes();
+            ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
+            buffer.clear();
+            buffer.put(bytes);
+            buffer.flip();
+            while (buffer.hasRemaining()) {
+                channel.write(buffer);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Error while writing JSON file: " + e.getMessage());
+        }
+    }
+
+
 
     public static JSONArray readJsonArrayFile(File file) {
         JSONParser parser = new JSONParser();

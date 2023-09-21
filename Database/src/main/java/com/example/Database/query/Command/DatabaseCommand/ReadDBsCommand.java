@@ -34,9 +34,4 @@ public class ReadDBsCommand implements QueryCommand {
             return new ApiResponse("Error retrieving databases: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
-    @Override
-    public void broadcastOperation(JSONObject details) {
-
-    }
 }

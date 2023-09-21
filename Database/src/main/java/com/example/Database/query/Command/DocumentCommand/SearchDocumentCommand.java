@@ -2,40 +2,36 @@ package com.example.Database.query.Command.DocumentCommand;
 
 import com.example.Database.model.ApiResponse;
 import com.example.Database.model.Collection;
+import com.example.Database.model.Document;
 import com.example.Database.query.Command.CommandUtils;
 import com.example.Database.query.Command.QueryCommand;
 import com.example.Database.query.QueryType;
 import com.example.Database.services.DocumentService;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
-public class ReadDocumentsCommand implements QueryCommand {
-
+public class SearchDocumentCommand implements QueryCommand {
     @Autowired
-    DocumentService documentService;
+    DocumentService documentServices;
 
     @Override
     public QueryType getQueryType() {
-        return QueryType.READ_DOCUMENTS;
+        return QueryType.SEARCH;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public ApiResponse execute(JSONObject query) {
         try {
             Collection collection = CommandUtils.getCollection(query);
-            List<JSONObject> documents = documentService.readDocuments(collection);
-            JSONArray jsonArray = new JSONArray();
-            jsonArray.addAll(documents);
-            return new ApiResponse(jsonArray.toJSONString(), HttpStatus.ACCEPTED);
+            String documentId = CommandUtils.getDocumentId(query);
+            Document document = new Document(documentId);
+            String propertyName = query.get("propertyName").toString();
+            return documentServices.searchProperty(collection, document, propertyName);
         } catch (Exception e) {
-            return new ApiResponse("Error reading documents: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return new ApiResponse("Error searching document: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 }

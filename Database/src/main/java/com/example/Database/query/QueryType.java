@@ -9,6 +9,7 @@ public enum QueryType {
     DELETE_COLLECTION,
     CREATE_DOCUMENT,
     READ_DOCUMENTS,
+    SEARCH,
     UPDATE_INDEX,
     DELETE_DOCUMENT
 }

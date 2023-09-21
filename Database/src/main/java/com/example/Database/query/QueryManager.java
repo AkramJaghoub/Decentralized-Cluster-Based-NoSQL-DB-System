@@ -100,7 +100,7 @@ public class QueryManager {
         jsonObject.put("queryType", QueryType.DELETE_DOCUMENT.toString());
         jsonObject.put("databaseName", databaseName);
         jsonObject.put("collectionName", collectionName);
-        jsonObject.put("documentId",documentId);
+        jsonObject.put("documentId", documentId);
         jsonObject.put("X-Broadcast", isBroadcasted);
         return execute(jsonObject);
     }
@@ -129,14 +129,27 @@ public class QueryManager {
     }
 
 
-    public ApiResponse updateProperty(String databaseName,String collectionName, String documentId, String propertyName, Object newPropertyValue) {
+    public ApiResponse search(String databaseName, String collectionName, String documentId, String propertyName) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("queryType", QueryType.SEARCH.toString());
+        jsonObject.put("databaseName", databaseName);
+        jsonObject.put("collectionName", collectionName);
+        jsonObject.put("documentId", documentId);
+        jsonObject.put("propertyName", propertyName);
+        return execute(jsonObject);
+    }
+
+
+    public ApiResponse updateProperty(String databaseName, String collectionName, String documentId, String propertyName,
+                                      Object newPropertyValue, String isBroadcasted) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("queryType", QueryType.UPDATE_INDEX.toString());
         jsonObject.put("databaseName", databaseName);
         jsonObject.put("collectionName", collectionName);
-        jsonObject.put("documentId",documentId);
+        jsonObject.put("documentId", documentId);
         jsonObject.put("propertyName", propertyName);
         jsonObject.put("newPropertyValue", newPropertyValue);
+        jsonObject.put("X-Broadcast", isBroadcasted);
         return execute(jsonObject);
     }
 
