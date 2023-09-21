@@ -14,14 +14,30 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            position: relative;
+        }
+
+        h1 {
+            position: absolute;
+            top: calc(50% - 270px); /* Assuming your form height is roughly 180px and you want it to be centered */
+            left: 50%;
+            transform: translate(-50%, 0);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 0; /* To reset default margins */
+            z-index: 5;
         }
 
         .login-panel {
-            width: 300px;
+            margin-top: 50px;
+            width: 320px;
             background: #fff;
             padding: 40px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
             border-radius: 10px;
+            position: relative;
+            z-index: 1;
         }
 
         label {
@@ -39,19 +55,18 @@
             margin-bottom: 20px;
         }
 
-        .btn-login {
+        input[type="submit"] {
             background-color: #007BFF;
-            color: white;
-            padding: 10px 20px;
+            color: #fff;
+            padding: 15px 25px;
             border: none;
-            cursor: pointer;
-            transition: background 0.3s ease;
             border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
             width: 100%;
-            text-align: center;
         }
 
-        .btn-login:hover {
+        input[type="submit"]:hover {
             background-color: #0056b3;
         }
 
@@ -67,25 +82,117 @@
             text-align: center;
             width: 100%;
         }
+
+        [th\\:if="true"] .error-message {
+                             display: flex;
+                         }
+
+        .role-selection {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .role-option {
+            display: flex;
+            align-items: center;
+            margin: 10px;
+            position: relative;
+        }
+
+        .role-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .role-option label {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #eee;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            transition: background 0.3s;
+        }
+
+        .role-option input[type="radio"]:checked + label {
+            background-color: #007BFF;
+            color: #fff;
+        }
+
+        .role-message {
+            margin-bottom: 10px;
+            color: #555;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            padding: 10px 20px;
+            background-color: #f0db4f;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body>
+<h1>Login</h1>
 <div class="login-panel">
-    <div th:if="${result}">
-        <div class="error-message" th:text="${result}"></div>
-    </div>
-    <h1>Login</h1>
     <form th:action="@{/login}" method="post">
-        <label>
-            Username
-            <input type="text" name="username" placeholder="Enter your username" required>
-        </label>
+        <div class="role-message">
+            Please select your role:
+        </div>
+        <div class="role-selection">
+            <div class="role-option">
+                <input type="radio" id="admin" name="role" value="admin" required>
+                <label for="admin">Admin</label>
+            </div>
+            <div class="role-option">
+                <input type="radio" id="customer" name="role" value="customer" checked required>
+                <label for="customer">Customer</label>
+            </div>
+        </div>
+        <div th:if="${result}">
+            <div class="error-message" th:text="${result}"></div>
+        </div>
+
+        <!-- Admin Input -->
+        <div id="adminInput">
+            <label>
+                Username
+                <input type="text" name="username" placeholder="Enter your username">
+            </label>
+        </div>
+        <div id="customerInput">
+            <label>
+                Account Number
+                <input type="text" name="accountNumber" placeholder="Enter your account number">
+            </label>
+        </div>
         <label>
             Password
             <input type="password" name="password" placeholder="Enter your password" required>
         </label>
-        <button class="btn-login" type="submit">Login</button>
+        <input type="submit" value="Login"/>
     </form>
 </div>
+
+<script>
+    function toggleRoleInput() {
+        const role = document.querySelector('input[name="role"]:checked').value;
+        const adminInput = document.getElementById('adminInput');
+        const customerInput = document.getElementById('customerInput');
+
+        if (role === 'admin') {
+            adminInput.style.display = 'block';
+            customerInput.style.display = 'none';
+        } else {
+            adminInput.style.display = 'none';
+            customerInput.style.display = 'block';
+        }
+    }
+    document.getElementById('admin').addEventListener('change', toggleRoleInput);
+    document.getElementById('customer').addEventListener('change', toggleRoleInput);
+    toggleRoleInput();
+</script>
 </body>
 </html>

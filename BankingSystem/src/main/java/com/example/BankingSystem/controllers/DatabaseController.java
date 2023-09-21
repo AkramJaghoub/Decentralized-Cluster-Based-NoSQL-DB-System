@@ -61,8 +61,12 @@ public class DatabaseController {
     public ResponseEntity<List<String>> fetchExistingDatabases(HttpSession session) {
         Admin login = (Admin) session.getAttribute("login");
         if (login == null) {
+            System.out.println(login.getUsername() + " ppp");
+            System.out.println(login.getPassword());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header("Location", "/login-page").body(Collections.emptyList());
         }
+        System.out.println(login.getUsername());
+        System.out.println(login.getPassword());
         List<String> databaseNames = databaseService.getAllDatabases(session);
         if (databaseNames.isEmpty()) {
             return ResponseEntity.noContent().build();

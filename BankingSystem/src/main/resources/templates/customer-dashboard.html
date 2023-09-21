@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+    <style>
+        h2 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .balance {
+            font-size: 24px;
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .centered-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .button-container button {
+            font-size: 20px;
+            padding: 20px 35px;
+            border-width: 3px;
+            border-radius: 8px;
+        }
+
+        .highlight {
+            background-color: grey;
+            transition: background-color 4s ease-out;
+        }
+
+        #message {
+            background-color: green;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            width: fit-content;
+            display: none;
+            text-align: center;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="message"></div>
+
+<div class="container mt-5">
+    <div class="centered-content">
+        <h2 th:text="'Hello, ' + ${clientName}"></h2>
+        <div class="button-container">
+            <button class="btn btn-primary" data-toggle="modal" data-target="#withdrawModal">Withdraw</button>
+            <button class="btn btn-primary" data-toggle="modal" data-target="#depositModal">Deposit</button>
+        </div>
+        <p class="balance" th:text="'Your Account Balance: $' + ${balance}"></p>
+    </div>
+</div>
+
+<!-- Withdraw Modal -->
+<div id="withdrawModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Withdraw Amount</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="withdrawForm">
+                    <div class="form-group">
+                        <label for="withdrawAmount">Amount:</label>
+                        <input type="number" class="form-control" id="withdrawAmount" name="withdrawAmount" required>
+                    </div>
+                    <div id="withdrawError" class="alert alert-danger mt-3" style="display: none;"></div>
+                    <button type="submit" class="btn btn-primary">Confirm Withdraw</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deposit Modal -->
+<div id="depositModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Deposit Amount</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="depositForm">
+                    <div class="form-group">
+                        <label for="depositAmount">Amount:</label>
+                        <input type="number" class="form-control" id="depositAmount" name="depositAmount" required>
+                    </div>
+                    <div id="depositError" class="alert alert-danger mt-3" style="display: none;"></div>
+                    <button type="submit" class="btn btn-primary">Confirm Deposit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $('#withdrawForm').submit(function (e) {
+        e.preventDefault();
+        let withdrawAmount = $('#withdrawAmount').val();
+        $.ajax({
+            url: '/customer-dashboard/banking-system/withdraw',
+            method: 'POST',
+            data: { amount: withdrawAmount },
+            success: function (response, textStatus, xhr) {
+                $('.balance').text('Your Account Balance: $' + response);
+                $('.balance').addClass('highlight');
+                $('#message').text('Withdrawal operation is successful').slideDown().delay(6000).slideUp();
+                setTimeout(function() {
+                    $('.balance').removeClass('highlight');
+                }, 3000);
+                $('#withdrawModal').modal('hide');
+            },
+            error: function (jqXHR) {
+                if(jqXHR.responseText.includes("Please withdraw an amount")) {
+                    $('#withdrawError').text(jqXHR.responseText).slideDown().slideUp(6000);
+                } else {
+                    alert(jqXHR.responseText || "There was an error processing your request. Please try again.");
+                }
+            }
+        });
+    });
+
+    $('#depositForm').submit(function (e) {
+        e.preventDefault();
+        let depositAmount = $('#depositAmount').val();
+        $.ajax({
+            url: '/customer-dashboard/banking-system/deposit',
+            method: 'POST',
+            data: { amount: depositAmount },
+            success: function (response, textStatus, xhr) {
+                $('.balance').text('Your Account Balance: $' + response);
+                $('.balance').addClass('highlight');
+                $('#message').text('Deposit operation is successful').slideDown().delay(5000).slideUp();
+                setTimeout(function() {
+                    $('.balance').removeClass('highlight');
+                }, 3000);
+                $('#depositModal').modal('hide');
+            },
+            error: function (jqXHR) {
+                $('#depositError').text(jqXHR.responseText).slideDown().slideUp(6000);
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

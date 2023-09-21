@@ -2,7 +2,6 @@ package com.example.BankingSystem.controllers;
 
 import com.example.BankingSystem.Model.Admin;
 import com.example.BankingSystem.Model.BankAccount;
-import com.example.BankingSystem.Model.User;
 import com.example.BankingSystem.services.DocumentService;
 import com.example.BankingSystem.services.UserService;
 import jakarta.servlet.http.HttpSession;
@@ -36,7 +35,7 @@ public class DocumentController {
         String message = responseEntity.getBody();
         if (status == HttpStatus.CREATED) {
             List<BankAccount> accounts = documentService.readAccounts(dbName, collectionName, session);
-            userService.addUser(bankAccount.getAccountNumber(), bankAccount.getPassword());
+            userService.addCustomer(bankAccount.getAccountNumber(), bankAccount.getPassword(), session);
             return new ResponseEntity<>(accounts, status);
         }else if (status == HttpStatus.CONFLICT) {
             return ResponseEntity.status(status).body(message);

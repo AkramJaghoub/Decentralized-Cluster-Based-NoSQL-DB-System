@@ -1,6 +1,6 @@
 package com.example.BankingSystem.Model;
 
-import com.example.BankingSystem.database.collection.docuemnt.AccountTypes;
+import com.example.BankingSystem.enums.AccountTypes;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import json.JsonBuilder;
 import lombok.Getter;

@@ -23,7 +23,7 @@ public class DocumentService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("username", admin.getUsername());
         headers.set("password", admin.getPassword());
-        headers.set("X-Broadcast", "false");  // <-- Set it to false for direct creation requests
+        headers.set("X-Broadcast", "false");
         headers.setContentType(MediaType.APPLICATION_JSON);
         JSONObject bankAccountJson = bankAccount.bankAccountToJSON();
         HttpEntity<String> requestEntity = new HttpEntity<>(bankAccountJson.toJSONString(), headers);
