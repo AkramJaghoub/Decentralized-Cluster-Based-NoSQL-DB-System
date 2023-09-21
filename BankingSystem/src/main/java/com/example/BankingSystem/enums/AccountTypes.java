@@ -1,4 +1,4 @@
-package com.example.BankingSystem.database.collection.docuemnt;
+package com.example.BankingSystem.enums;
 
 public enum AccountTypes {
     DEPOSIT,

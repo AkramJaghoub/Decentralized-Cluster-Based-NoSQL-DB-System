@@ -1,62 +1,38 @@
 package com.example.Bootstrapper.services;
 
 import com.example.Bootstrapper.File.FileServices;
-import com.example.Bootstrapper.model.User;
+import com.example.Bootstrapper.model.Admin;
+import com.example.Bootstrapper.model.Customer;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.util.Optional;;
 
 @Service
 public class AuthenticationService {
+
     public boolean isAdmin(String username, String password) {
         if (username == null || password == null) {
-            throw new RuntimeException("username or token is null");
+            throw new RuntimeException("username or password is null");
         }
-        String path = FileServices.adminJsonFilePath();
-        JSONParser parser = new JSONParser();
-        try {
-            Object obj = parser.parse(new FileReader(path));
-            JSONObject jsonObject = (JSONObject) obj;
-            String fileUsername = (String) jsonObject.get("username");
-            String filePassword = (String) jsonObject.get("password");
-            if (fileUsername.equals(username) && filePassword.equals(password)) {
-                return true;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        Optional<Admin> adminCredentialsOpt = FileServices.getAdminCredentials();
+        if (adminCredentialsOpt.isEmpty()) {
+            return false;
         }
-        return false;
+        Admin adminCredentials = adminCredentialsOpt.get();
+        String fileUsername = adminCredentials.getUsername();
+        String filePassword = adminCredentials.getPassword();
+        return fileUsername.equals(username) && filePassword.equals(password);
     }
 
-    public String verifyAdminCredentials(String username, String password) {
-        JSONParser parser = new JSONParser();
-        String path = FileServices.adminJsonFilePath();
-        try {
-            Object obj = parser.parse(new FileReader(path));
-            JSONObject jsonObject = (JSONObject) obj;
-            String fileUsername = (String) jsonObject.get("username");
-            String fileToken = (String) jsonObject.get("password");
-            if (!fileUsername.equals(username)) {
-                return "Wrong Username";
-            }
-            if (!fileToken.equals(password)) {
-                return "Wrong Password";
-            }
-            return "Authenticated";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "server error";
-        }
+    public boolean adminExists() {
+        return FileServices.getAdminCredentials().isPresent();
     }
 
-    public boolean isUserExists(User user) {
-        if (user == null || user.getAccountNumber() == null) {
+    public boolean isUserExists(Customer customer) {
+        if (customer == null || customer.getAccountNumber() == null) {
             return false;
         }
         String path = FileServices.getUserJsonPath("users");
@@ -67,7 +43,7 @@ public class AuthenticationService {
                 for (Object obj : jsonArray) {
                     JSONObject userObject = (JSONObject) obj;
                     String accountNumber = (String) userObject.get("accountNumber");
-                    if (accountNumber != null && accountNumber.equals(user.getAccountNumber())) {
+                    if (accountNumber != null && accountNumber.equals(customer.getAccountNumber())) {
                         return true;
                     }
                 }

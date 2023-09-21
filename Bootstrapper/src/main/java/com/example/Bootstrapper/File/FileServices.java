@@ -1,5 +1,7 @@
 package com.example.Bootstrapper.File;
 
+import com.example.Bootstrapper.model.Admin;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -12,10 +14,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 
 @Service
 public final class FileServices {
-    private static final String usersDirectoryPath="/app/data/static";
+    private static final String usersDirectoryPath="src/main/resources/static";
     private FileServices(){}
 
 
@@ -23,6 +26,7 @@ public final class FileServices {
     public static void saveUserToJson(String fileName, JSONObject document) {
         String documentPath = usersDirectoryPath + "/" + fileName + ".json";
         JSONArray jsonArray = new JSONArray();
+        System.out.println(isFileExists(documentPath));
         if (isFileExists(documentPath)) {
             try (FileReader reader = new FileReader(documentPath)) {
                 JSONParser parser = new JSONParser();
@@ -30,11 +34,30 @@ public final class FileServices {
             } catch (IOException | ParseException e) {
                 e.printStackTrace();
                 System.err.println("Error reading the file: " + e.getMessage());
+                return;
             }
         }
         jsonArray.add(document);
-        try (FileWriter writer = new FileWriter(documentPath)) {
-            writer.write(jsonArray.toJSONString());
+        File parentDir = new File(documentPath).getParentFile();
+        if (!parentDir.exists()) {
+            parentDir.mkdirs();
+        }
+       writeJsonArrayFile(new File(documentPath), jsonArray);
+    }
+
+    public static void saveAdminToJson(JSONObject document) {
+        String documentPath = usersDirectoryPath + "/admin.json";
+        File parentDir = new File(documentPath).getParentFile();
+        if (!parentDir.exists()) {
+            parentDir.mkdirs();
+        }
+        writeJsonObjectFile(new File(documentPath), document);
+    }
+
+    public static void writeJsonObjectFile(File file, JSONObject jsonObject) {
+        try (FileWriter fileWriter = new FileWriter(file)) {
+            fileWriter.write(jsonObject.toJSONString());
+            fileWriter.flush();
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Error writing to the file: " + e.getMessage());
@@ -42,7 +65,7 @@ public final class FileServices {
     }
 
 
-    private static boolean isFileExists(String filePath){
+    public static boolean isFileExists(String filePath){
         Path path = Paths.get(filePath);
         return Files.exists(path);
     }
@@ -50,8 +73,8 @@ public final class FileServices {
     public static JSONArray readJsonArrayFile(File file) {
         JSONParser parser = new JSONParser();
         try (FileReader reader = new FileReader(file)) {
-            if (file.length() == 0) { // Check if the file is empty
-                return new JSONArray(); // Return an empty JSONArray
+            if (file.length() == 0) {
+                return new JSONArray();
             }
             Object obj = parser.parse(reader);
             return (JSONArray) obj;
@@ -71,11 +94,29 @@ public final class FileServices {
         }
     }
 
+
+    public static Optional<Admin> getAdminCredentials() {
+        ObjectMapper mapper = new ObjectMapper();
+        String path = FileServices.adminJsonFilePath();
+        File file = new File(path);
+        if (!file.exists()) {
+            return Optional.empty();
+        }
+        try {
+            Admin credentials = mapper.readValue(file, Admin.class);
+            return Optional.of(credentials);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
+
     public static String getUserJsonPath(String fileName){
         return usersDirectoryPath + "/" + fileName + ".json";
     }
 
     public static String adminJsonFilePath(){
-        return "/app/data/static/admin.json";
+        return "src/main/resources/static/admin.json";
     }
 }

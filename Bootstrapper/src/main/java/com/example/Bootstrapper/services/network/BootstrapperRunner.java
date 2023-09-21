@@ -12,6 +12,7 @@ public class BootstrapperRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        System.out.println("initializing nodes.................");
         networkService.run();
     }
 }

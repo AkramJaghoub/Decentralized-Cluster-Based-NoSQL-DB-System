@@ -1,13 +1,11 @@
 package com.example.Bootstrapper.Controller;
 
-import com.example.Bootstrapper.model.User;
+import com.example.Bootstrapper.model.Admin;
+import com.example.Bootstrapper.model.Customer;
 import com.example.Bootstrapper.services.AuthenticationService;
 import com.example.Bootstrapper.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/bootstrapper")
@@ -17,7 +15,7 @@ public class UserController {
     @Autowired
     AuthenticationService authenticationService;
 
-    @GetMapping("/add/user")
+    @PostMapping("/add/customer")
     public String addUser(@RequestHeader("accountNumber") String accountNumber,
                           @RequestHeader("password") String password,
                           @RequestHeader("adminUsername") String adminUsername,
@@ -25,20 +23,25 @@ public class UserController {
         if(!authenticationService.isAdmin(adminUsername, adminPassword)){
             return "User is not authorized";
         }
-        System.out.println("Received request to register a new user with account number: " + accountNumber);
-        User user = new User();
-        user.setAccountNumber(accountNumber);
-        user.setPassword(password);
-        if (authenticationService.isUserExists(user)) {
-            return "User already exists.";
+        System.out.println("Received request to register a new customer with account number: " + accountNumber);
+        Customer customer = new Customer(accountNumber, password);
+        if (authenticationService.isUserExists(customer)) {
+            return "Customer already exists";
         }
-        userService.addUser(user);
-        return "User added successfully in.";
+        userService.addCustomer(customer);
+        return "Customer added successfully";
     }
 
-    @GetMapping("/check/admin")
-    public String checkAdminCredentials(@RequestHeader("username") String username,
-                                        @RequestHeader("password") String password) {
-        return authenticationService.verifyAdminCredentials(username, password);
+
+    @PostMapping("/add/admin")
+    public String addAdmin(@RequestHeader("username") String username,
+                           @RequestHeader("password") String password) {
+        System.out.println("Received request to register the admin with username: " + username);
+        if(authenticationService.adminExists()){
+            return "Admin already exists";
+        }
+        Admin admin = new Admin(username, password);
+        userService.addAdmin(admin);
+        return "admin added successfully";
     }
 }
