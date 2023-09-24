@@ -1,8 +1,9 @@
 package com.example.Database.query;
 
+import com.example.Database.json.JsonBuilder;
 import com.example.Database.model.ApiResponse;
-import com.example.Database.query.Command.QueryCommand;
-import com.example.Database.query.Command.Factory.QueryObjectFactory;
+import com.example.Database.query.command.QueryCommand;
+import com.example.Database.query.command.factory.QueryCommandFactory;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -16,102 +17,110 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-@SuppressWarnings("unchecked")
 public class QueryManager {
 
     private final Map<QueryType, QueryCommand> queryMap;
 
     @Autowired
-    public QueryManager(QueryObjectFactory queryObjectFactory) {
-        this.queryMap = queryObjectFactory.queryMap();
+    public QueryManager(List<QueryCommand> commandList) {
+        this.queryMap = QueryCommandFactory.createQueryMap(commandList);
     }
 
     public ApiResponse createDatabase(String dbName, String isBroadcasted) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.CREATE_DATABASE.toString());
-        jsonObject.put("databaseName", dbName);
-        jsonObject.put("X-Broadcast", isBroadcasted);
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.CREATE_DATABASE.toString())
+                .add("databaseName", dbName)
+                .add("X-Broadcast", isBroadcasted)
+                .build();
         return execute(jsonObject);
     }
 
     public ApiResponse deleteDatabase(String dbName, String isBroadcasted) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.DELETE_DATABASE.toString());
-        jsonObject.put("databaseName", dbName);
-        jsonObject.put("X-Broadcast", isBroadcasted);
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.DELETE_DATABASE.toString())
+                .add("databaseName", dbName)
+                .add("X-Broadcast", isBroadcasted)
+                .build();
         return execute(jsonObject);
     }
 
     public List<String> readDatabases() {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.READ_DATABASES.toString());
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.READ_DATABASES.toString())
+                .build();
         ApiResponse response = execute(jsonObject);
         List<String> databaseList = new ArrayList<>();
-        if (response != null && response.getStatus() == HttpStatus.ACCEPTED) {
+        if (response != null && response.getStatus() == HttpStatus.OK) {
             Collections.addAll(databaseList, response.getMessage().split(", "));
         }
         return databaseList;
     }
 
     public ApiResponse createCollection(String dbName, String collectionName, JSONObject schema, String isBroadcasted) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.CREATE_COLLECTION.toString());
-        jsonObject.put("databaseName", dbName);
-        jsonObject.put("collectionName", collectionName);
-        jsonObject.put("schema", schema);
-        jsonObject.put("X-Broadcast", isBroadcasted);
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.CREATE_COLLECTION.toString())
+                .add("databaseName", dbName)
+                .add("collectionName", collectionName)
+                .add("schema", schema)
+                .add("X-Broadcast", isBroadcasted)
+                .build();
         return execute(jsonObject);
     }
 
     public ApiResponse deleteCollection(String dbName, String collectionName, String isBroadcasted) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.DELETE_COLLECTION.toString());
-        jsonObject.put("databaseName", dbName);
-        jsonObject.put("collectionName", collectionName);
-        jsonObject.put("X-Broadcast", isBroadcasted);
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.DELETE_COLLECTION.toString())
+                .add("databaseName", dbName)
+                .add("collectionName", collectionName)
+                .add("X-Broadcast", isBroadcasted)
+                .build();
         return execute(jsonObject);
     }
 
     public List<String> readCollections(String databaseName) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.READ_COLLECTIONS.toString());
-        jsonObject.put("databaseName", databaseName);
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.READ_COLLECTIONS.toString())
+                .add("databaseName", databaseName)
+                .build();
         ApiResponse response = execute(jsonObject);
         List<String> collectionList = new ArrayList<>();
-        if (response != null && response.getStatus() == HttpStatus.ACCEPTED) {
+        if (response != null && response.getStatus() == HttpStatus.OK) {
             Collections.addAll(collectionList, response.getMessage().split(", "));
         }
         return collectionList;
     }
 
     public ApiResponse createDocument(String databaseName, String collectionName, JSONObject document, String isBroadcasted) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.CREATE_DOCUMENT.toString());
-        jsonObject.put("databaseName", databaseName);
-        jsonObject.put("collectionName", collectionName);
-        jsonObject.put("document", document);
-        jsonObject.put("X-Broadcast", isBroadcasted);
-        System.out.println(jsonObject.toJSONString() + " in query");
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.CREATE_DOCUMENT.toString())
+                .add("databaseName", databaseName)
+                .add("collectionName", collectionName)
+                .add("document", document)
+                .add("X-Broadcast", isBroadcasted)
+                .build();
+        System.out.println(isBroadcasted);
         return execute(jsonObject);
     }
 
     public ApiResponse deleteDocument(String databaseName, String collectionName, String documentId, String isBroadcasted) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.DELETE_DOCUMENT.toString());
-        jsonObject.put("databaseName", databaseName);
-        jsonObject.put("collectionName", collectionName);
-        jsonObject.put("documentId", documentId);
-        jsonObject.put("X-Broadcast", isBroadcasted);
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.DELETE_DOCUMENT.toString())
+                .add("databaseName", databaseName)
+                .add("collectionName", collectionName)
+                .add("documentId", documentId)
+                .add("X-Broadcast", isBroadcasted)
+                .build();
         return execute(jsonObject);
     }
 
     public List<JSONObject> readDocuments(String databaseName, String collectionName) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.READ_DOCUMENTS.toString());
-        jsonObject.put("databaseName", databaseName);
-        jsonObject.put("collectionName", collectionName);
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.READ_DOCUMENTS.toString())
+                .add("databaseName", databaseName)
+                .add("collectionName", collectionName)
+                .build();
         ApiResponse response = execute(jsonObject);
-        if (response.getStatus() == HttpStatus.ACCEPTED) {
+        if (response.getStatus() == HttpStatus.OK) {
             JSONParser jsonParser = new JSONParser();
             try {
                 JSONArray documentsArray = (JSONArray) jsonParser.parse(response.getMessage());
@@ -128,28 +137,29 @@ public class QueryManager {
         return Collections.emptyList();
     }
 
-
-    public ApiResponse search(String databaseName, String collectionName, String documentId, String propertyName) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.SEARCH.toString());
-        jsonObject.put("databaseName", databaseName);
-        jsonObject.put("collectionName", collectionName);
-        jsonObject.put("documentId", documentId);
-        jsonObject.put("propertyName", propertyName);
+    public ApiResponse updateDocumentProperty(String databaseName, String collectionName, String documentId, String propertyName,
+                                              Object newPropertyValue, String isBroadcasted) {
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.UPDATE_DOCUMENT_PROPERTY.toString())
+                .add("databaseName", databaseName)
+                .add("collectionName", collectionName)
+                .add("documentId", documentId)
+                .add("propertyName", propertyName)
+                .add("newPropertyValue", newPropertyValue)
+                .add("X-Broadcast", isBroadcasted)
+                .build();
         return execute(jsonObject);
     }
 
 
-    public ApiResponse updateProperty(String databaseName, String collectionName, String documentId, String propertyName,
-                                      Object newPropertyValue, String isBroadcasted) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("queryType", QueryType.UPDATE_INDEX.toString());
-        jsonObject.put("databaseName", databaseName);
-        jsonObject.put("collectionName", collectionName);
-        jsonObject.put("documentId", documentId);
-        jsonObject.put("propertyName", propertyName);
-        jsonObject.put("newPropertyValue", newPropertyValue);
-        jsonObject.put("X-Broadcast", isBroadcasted);
+    public ApiResponse searchForProperty(String databaseName, String collectionName, String documentId, String propertyName) {
+        JSONObject jsonObject = JsonBuilder.getBuilder()
+                .add("queryType", QueryType.SEARCH.toString())
+                .add("databaseName", databaseName)
+                .add("collectionName", collectionName)
+                .add("documentId", documentId)
+                .add("propertyName", propertyName)
+                .build();
         return execute(jsonObject);
     }
 

@@ -14,8 +14,12 @@ import java.util.List;
 @RequestMapping("/admin-dashboard/banking-system")
 public class DatabaseController {
 
+    private final DatabaseService databaseService;
+
     @Autowired
-    DatabaseService databaseService;
+    public DatabaseController(DatabaseService databaseService){
+        this.databaseService = databaseService;
+    }
 
     @PostMapping("/createDB")
     public ResponseEntity<?> createDb(@RequestParam("db_name") String dbName, HttpSession session) {
@@ -28,7 +32,7 @@ public class DatabaseController {
         String message = response.getBody();
         if (status == HttpStatus.CREATED) {
             List<String> allDatabases = databaseService.getAllDatabases(session);
-            return new ResponseEntity<>(allDatabases, status);
+            return ResponseEntity.status(status).body(allDatabases);
         } else if (status == HttpStatus.CONFLICT) {
             return ResponseEntity.status(status).body(message);
         } else {
@@ -48,7 +52,7 @@ public class DatabaseController {
         String message = responseEntity.getBody();
         if (status == HttpStatus.ACCEPTED) {
             List<String> allDatabases = databaseService.getAllDatabases(session);
-            return new ResponseEntity<>(allDatabases, status);
+            return ResponseEntity.status(status).body(allDatabases);
         } else if (status == HttpStatus.NOT_FOUND) {
             return ResponseEntity.status(status).body(message);
         } else {
@@ -61,8 +65,6 @@ public class DatabaseController {
     public ResponseEntity<List<String>> fetchExistingDatabases(HttpSession session) {
         Admin login = (Admin) session.getAttribute("login");
         if (login == null) {
-            System.out.println(login.getUsername() + " ppp");
-            System.out.println(login.getPassword());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header("Location", "/login-page").body(Collections.emptyList());
         }
         System.out.println(login.getUsername());
@@ -71,7 +73,7 @@ public class DatabaseController {
         if (databaseNames.isEmpty()) {
             return ResponseEntity.noContent().build();
         } else {
-            return ResponseEntity.ok(databaseNames);
+            return ResponseEntity.status(HttpStatus.OK).body(databaseNames);
         }
     }
 }

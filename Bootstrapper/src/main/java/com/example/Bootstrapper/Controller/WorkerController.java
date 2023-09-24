@@ -13,13 +13,16 @@ import java.util.Objects;
 @RequestMapping("/bootstrapper")
 public class WorkerController {
 
+    private final WorkerService workerService;
+
     @Autowired
-    WorkerService workerService;
+    public WorkerController(WorkerService workerService){
+        this.workerService = workerService;
+    }
 
     @GetMapping("/getWorker/{identity}")
     public String getWorker(@PathVariable String identity) {
         String workerPort = workerService.getWorker(identity);
-        System.out.println(identity + " is in worker: " + workerPort);
         return Objects.requireNonNullElse(workerPort, "could not find worker port");
     }
 }

@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 public class WorkerController {
 
-    AuthenticationService authenticationService;
+    private final AuthenticationService authenticationService;
 
-    AffinityManager affinityManager;
+    private final AffinityManager affinityManager;
 
-    UserService userService;
+    private final UserService userService;
 
     @Autowired
     public WorkerController(AuthenticationService authenticationService, UserService userService, AffinityManager affinityManager){
@@ -30,11 +30,9 @@ public class WorkerController {
         System.out.println("Received request to set worker name to: " + workerName);
         try {
             affinityManager.setCurrentWorkerPort(workerName);
-            System.out.println(affinityManager.getCurrentWorkerPort());
-            return new ResponseEntity<>("The current worker name is set to: " + workerName, HttpStatus.OK);
+            return ResponseEntity.status(HttpStatus.OK).body("The current worker name is set to: " + workerName);
         } catch (Exception e) {
-            System.out.println("Error setting worker name: " + e.getMessage());
-            return new ResponseEntity<>("Error setting worker name: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error setting worker name: " + e.getMessage());
         }
     }
 }

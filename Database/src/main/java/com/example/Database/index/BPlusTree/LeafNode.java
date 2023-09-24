@@ -1,6 +1,5 @@
 package com.example.Database.index.BPlusTree;
 
-import java.io.Serializable;
 
 class LeafNode<T extends Comparable<T>, TValue> extends Node<T> {
     protected final static int LEAF_ORDER = 4;
@@ -18,11 +17,6 @@ class LeafNode<T extends Comparable<T>, TValue> extends Node<T> {
 
     public void setValue(int index, TValue value) {
         this.values[index] = value;
-    }
-
-    @Override
-    public NodeType getNodeType() {
-        return NodeType.LeafNode;
     }
 
     @Override

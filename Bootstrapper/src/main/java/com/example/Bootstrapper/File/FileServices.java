@@ -54,6 +54,40 @@ public final class FileServices {
         writeJsonObjectFile(new File(documentPath), document);
     }
 
+    @SuppressWarnings("unchecked")
+    public static void deleteUserFromJson(String fileName, String accountNumber) {
+        String documentPath = getUserJsonPath(fileName);
+        JSONArray jsonArray = readJsonArrayFile(new File(documentPath));
+        if (jsonArray == null) {
+            return;
+        }
+        JSONArray updatedArray = new JSONArray();
+        for (Object obj : jsonArray) {
+            JSONObject jsonObject = (JSONObject) obj;
+            String userAccountNumber = (String) jsonObject.get("accountNumber");
+            if (!userAccountNumber.equals(accountNumber)) {
+                updatedArray.add(jsonObject);
+            }
+        }
+        writeJsonArrayFile(new File(documentPath), updatedArray);
+    }
+
+    public static Optional<Admin> getAdminCredentials() {
+        ObjectMapper mapper = new ObjectMapper();
+        String path = FileServices.adminJsonFilePath();
+        File file = new File(path);
+        if (!file.exists()) {
+            return Optional.empty();
+        }
+        try {
+            Admin credentials = mapper.readValue(file, Admin.class);
+            return Optional.of(credentials);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
     public static void writeJsonObjectFile(File file, JSONObject jsonObject) {
         try (FileWriter fileWriter = new FileWriter(file)) {
             fileWriter.write(jsonObject.toJSONString());
@@ -93,24 +127,6 @@ public final class FileServices {
             System.err.println("Error while writing JSON file: " + e.getMessage());
         }
     }
-
-
-    public static Optional<Admin> getAdminCredentials() {
-        ObjectMapper mapper = new ObjectMapper();
-        String path = FileServices.adminJsonFilePath();
-        File file = new File(path);
-        if (!file.exists()) {
-            return Optional.empty();
-        }
-        try {
-            Admin credentials = mapper.readValue(file, Admin.class);
-            return Optional.of(credentials);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
-    }
-
 
     public static String getUserJsonPath(String fileName){
         return usersDirectoryPath + "/" + fileName + ".json";

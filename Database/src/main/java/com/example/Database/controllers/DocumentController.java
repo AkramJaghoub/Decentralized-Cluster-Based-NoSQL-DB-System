@@ -18,12 +18,17 @@ import java.util.List;
 @RequestMapping("/api")
 public class DocumentController {
 
+    private final AuthenticationService authenticationService;
+    private final AccountDirectoryService accountDirectoryService;
+    private final QueryManager queryManager;
+
     @Autowired
-    private AuthenticationService authenticationService;
-    @Autowired
-    private AccountDirectoryService accountDirectoryService;
-    @Autowired
-    private QueryManager queryManager;
+    public DocumentController(AuthenticationService authenticationService, AccountDirectoryService accountDirectoryService,
+                              QueryManager queryManager){
+        this.authenticationService = authenticationService;
+        this.accountDirectoryService = accountDirectoryService;
+        this.queryManager = queryManager;
+    }
 
     @PostMapping("/{db_name}/{collection_name}/createDoc")
     public ResponseEntity<String> createDocument(@PathVariable("db_name") String dbName,
@@ -31,15 +36,13 @@ public class DocumentController {
                                                  @RequestBody JSONObject document,
                                                  @RequestHeader("username") String username,
                                                  @RequestHeader("password") String password,
-                                                 @RequestHeader("X-Broadcast") String isBroadcasted){
+                                                 @RequestHeader(value = "X-Broadcast", required = false, defaultValue = "false") String isBroadcasted){
         if(!authenticationService.isAdmin(username, password)){
-            return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authorized");
         }
         FileService.setDatabaseDirectory(dbName);
-        document.put("X-Broadcast", isBroadcasted);
-        System.out.println(isBroadcasted + " is broadcasted in controller");
         ApiResponse response = queryManager.createDocument(dbName, collectionName, document, isBroadcasted);
-        return new ResponseEntity<>(response.getMessage(), response.getStatus());
+        return ResponseEntity.status(response.getStatus()).body(response.getMessage());
     }
 
     @GetMapping("/{db_name}/{collection_name}/readDocs")
@@ -48,14 +51,14 @@ public class DocumentController {
                                                 @RequestHeader("username") String username,
                                                 @RequestHeader("password") String password) {
         if (!authenticationService.isAdmin(username, password)) {
-            return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authorized");
         }
         FileService.setDatabaseDirectory(dbName);
         List<JSONObject> documents = queryManager.readDocuments(dbName, collectionName);
         if(documents.isEmpty()) {
-            return new ResponseEntity<>("No documents found.", HttpStatus.NO_CONTENT);
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("No documents found.");
         }
-        return new ResponseEntity<>(documents.toString(), HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).body(documents.toString());
     }
 
     @PutMapping("/{db_name}/{collection_name}/updateDoc/{property_name}")
@@ -64,34 +67,34 @@ public class DocumentController {
                                                  @RequestParam("doc_id") String documentId,
                                                  @PathVariable("property_name") String propertyName,
                                                  @RequestHeader("newPropertyValue") Object newPropertyValue,
-                                                 @RequestHeader("X-Broadcast") String isBroadcasted,
+                                                 @RequestHeader(value = "X-Broadcast", required = false, defaultValue = "false") String isBroadcasted,
                                                  @RequestHeader("username") String username,
                                                  @RequestHeader("password") String password) {
         if(!authenticationService.isAdmin(username, password)){
-            return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authorized");
         }
         FileService.setDatabaseDirectory(dbName);
-        ApiResponse response = queryManager.updateProperty(dbName, collectionName, documentId, propertyName, newPropertyValue, isBroadcasted);
-        return new ResponseEntity<>(response.getMessage(), response.getStatus());
+        ApiResponse response = queryManager.updateDocumentProperty(dbName, collectionName, documentId, propertyName, newPropertyValue, isBroadcasted);
+        return ResponseEntity.status(response.getStatus()).body(response.getMessage());
     }
 
     @DeleteMapping("/{db_name}/{collection_name}/deleteDoc")
     public ResponseEntity<String> deleteDocument(@PathVariable("db_name") String dbName,
                                  @PathVariable("collection_name") String collectionName,
                                  @RequestParam("doc_id") String documentId,
-                                 @RequestHeader("X-Broadcast") String isBroadcasted,
+                                 @RequestHeader(value = "X-Broadcast", required = false, defaultValue = "false") String isBroadcasted,
                                  @RequestHeader("username") String username,
                                  @RequestHeader("password") String password) {
         if(!authenticationService.isAdmin(username, password)){
-            return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authorized");
         }
         FileService.setDatabaseDirectory(dbName);
         ApiResponse response = queryManager.deleteDocument(dbName, collectionName, documentId, isBroadcasted);
-        return new ResponseEntity<>(response.getMessage(), response.getStatus());
+        return ResponseEntity.status(response.getStatus()).body(response.getMessage());
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<String> searchForProperty(@RequestHeader String propertyName,
+    @GetMapping("/search/{propertyName}")
+    public ResponseEntity<String> searchForProperty(@PathVariable String propertyName,
                                                     @RequestHeader("accountNumber") String accountNumber) {
         AccountReference accountReference = accountDirectoryService.getAccountLocation(accountNumber);
         String dbName = accountReference.getDatabaseName();
@@ -99,7 +102,7 @@ public class DocumentController {
         String documentId = accountReference.getDocumentId();
         FileService.setDatabaseDirectory(dbName);
         System.out.println("searching for " + propertyName);
-        ApiResponse response = queryManager.search(dbName, collectionName, documentId, propertyName);
-        return new ResponseEntity<>(response.getMessage(), response.getStatus());
+        ApiResponse response = queryManager.searchForProperty(dbName, collectionName, documentId, propertyName);
+        return ResponseEntity.status(response.getStatus()).body(response.getMessage());
     }
 }

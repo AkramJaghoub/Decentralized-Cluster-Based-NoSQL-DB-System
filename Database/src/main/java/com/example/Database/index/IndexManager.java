@@ -69,7 +69,7 @@ public class IndexManager {
         loadFromFile(propertyIndexPath, propertyIndex);
     }
 
-    private synchronized void loadFromFile(String path, Object index) {
+    private void loadFromFile(String path, Object index) {
         if (!FileService.isFileExists(path)) {
             return;
         }
@@ -83,7 +83,7 @@ public class IndexManager {
         }
     }
 
-    private Index getIndex(String collectionName) {
+    public Index getIndex(String collectionName) {
         Index index = indexMap.get(collectionName);
         if (index == null) {
             throw new IllegalArgumentException("Index does not exist.");
@@ -99,7 +99,7 @@ public class IndexManager {
         }
     }
 
-    public synchronized void insertIntoIndex(String collectionName, String documentId, int index) {
+    public void insertIntoIndex(String collectionName, String documentId, int index) {
         String existingValue = getIndex(collectionName).search(documentId);
         if (existingValue == null) {
             getIndex(collectionName).insert(documentId, String.valueOf(index));
@@ -107,9 +107,9 @@ public class IndexManager {
         }
     }
 
-    public synchronized void deleteFromIndex(String collectionName, String documentId) {
+    public void deleteFromIndex(String collectionName, String documentId) {
         Index index = getIndex(collectionName);
-        int deletedIndex = -1;
+        int deletedIndex;
         List<Map.Entry<String, String>> allEntries = new ArrayList<>(index.getBPlusTree().getAllEntries());
         String indexValue = index.search(documentId);
         if (indexValue != null) {
@@ -139,7 +139,7 @@ public class IndexManager {
         return getIndex(collectionName).search(documentId);
     }
 
-    public synchronized void createPropertyIndex(String collectionName, String propertyName) {
+    public void createPropertyIndex(String collectionName, String propertyName) {
         String propertyIndexKey = collectionName + "_" + propertyName;
         if (!propertyIndexMap.containsKey(propertyIndexKey)) {
             PropertyIndex index = new PropertyIndex();
@@ -147,52 +147,53 @@ public class IndexManager {
         }
     }
 
-    public synchronized void insertIntoPropertyIndex(String collectionName, String propertyName, String propertyValue, String documentId) {
+    public void insertIntoPropertyIndex(String collectionName, String propertyName, String propertyValue, String documentId) {
         String propertyIndexKey = collectionName + "_" + propertyName;
         PropertyIndex propertyIndex = propertyIndexMap.get(propertyIndexKey);
         if (propertyIndex == null) {
-            throw new IllegalArgumentException("Property Index does not exist.");
+            throw new IllegalArgumentException("Property Index does not exist");
         }
-        String combinedKey = documentId + "_" + propertyName;
+        String combinedKey = propertyName.equals("accountNumber") ? propertyValue : documentId + "_" + propertyName;  // Handle account number differently
         String existingPropertyValue = propertyIndex.search(combinedKey);
         if (!propertyValue.equals(existingPropertyValue)) {
-            System.out.println("Inserted new entry in property index for collection: " + collectionName + ", property: " + propertyName);
+            System.out.println("Inserted new entry in property index for collection: " + collectionName + " property: " + propertyName);
             propertyIndex.insert(combinedKey, propertyValue);
+            System.out.println(propertyIndex.search(combinedKey)  + " search forrrrrrrrr itttttttt");
             FileService.appendToIndexFile(FileService.getPropertyIndexFilePath(collectionName, propertyName), combinedKey, propertyValue);
         } else {
-            System.out.println("Entry already exists in property index for collection: " + collectionName + ", property: " + propertyName);
+            System.out.println("Entry already exists in property index for collection: " + collectionName + " property: " + propertyName);
         }
     }
 
-    public synchronized String searchInPropertyIndex(String collectionName, String propertyName, String documentId) {
+    public String searchInPropertyIndex(String collectionName, String propertyName, String documentId) {
         String propertyIndexKey = collectionName + "_" + propertyName;
         PropertyIndex propertyIndex = propertyIndexMap.get(propertyIndexKey);
         if (propertyIndex == null) {
             throw new IllegalArgumentException("Property Index does not exist.");
         }
-        String combinedKey = documentId + "_" + propertyName;
-        System.out.println("searching for combinedKey " + combinedKey + " property name " + propertyName + " collection " + collectionName);
+        String combinedKey = propertyName.equals("accountNumber") ? documentId : documentId + "_" + propertyName;  // Handle account number differently
+        System.out.println(propertyIndex.search(combinedKey));
         return propertyIndex.search(combinedKey);
     }
 
-    // Delete method also needs a slight modification.
-    public synchronized void deleteFromPropertyIndex(String collectionName, String propertyName, String documentId) {
+    public void deleteFromPropertyIndex(String collectionName, String propertyName, String documentId) {
         String propertyIndexKey = collectionName + "_" + propertyName;
         PropertyIndex propertyIndex = propertyIndexMap.get(propertyIndexKey);
         if (propertyIndex == null) {
             throw new IllegalArgumentException("Property Index does not exist.");
         }
-        String combinedKey = documentId + "_" + propertyName;
+
+        String combinedKey = propertyName.equals("accountNumber") ? documentId : documentId + "_" + propertyName;  // Handle account number differently
         propertyIndex.delete(combinedKey);
         System.out.println("Deleted property with combinedKey " + combinedKey + " property name " + propertyName + " collection " + collectionName);
         FileService.rewritePropertyIndexFile(FileService.getPropertyIndexFilePath(collectionName, propertyName), propertyIndex);
     }
 
-
     public boolean propertyIndexExists(String collectionName, String propertyName) {
         String propertyIndexKey = collectionName + "_" + propertyName;
         return propertyIndexMap.containsKey(propertyIndexKey);
     }
+
 
     public boolean indexExists(String collectionName) {
         return indexMap.containsKey(collectionName);

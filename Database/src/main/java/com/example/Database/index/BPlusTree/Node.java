@@ -1,6 +1,5 @@
 package com.example.Database.index.BPlusTree;
 
-import java.io.Serializable;
 
 abstract class Node<T extends Comparable<T>> {
     protected Object[] nodeKeys;
@@ -38,13 +37,11 @@ abstract class Node<T extends Comparable<T>> {
         this.parentNode = parentNode;
     }
 
-    public abstract NodeType getNodeType();
-
 
     /**
      * Search a key on current node, if found the key then return its position,
      * otherwise return -1 for a leaf node,
-     * return the child node index which should contain the key for a internal node.
+     * return the child node index which should contain the key for an internal node.
      */
     public abstract int search(T key);
 
@@ -61,7 +58,7 @@ abstract class Node<T extends Comparable<T>> {
         T upKey = this.getKeyAt(midIndex);
         Node<T> newRNode = this.split();
         if (this.getParentNode() == null) {
-            this.setParent(new InternalNode<T>());
+            this.setParent(new InternalNode<>());
         }
         newRNode.setParent(this.getParentNode());
         // maintain links of sibling nodes

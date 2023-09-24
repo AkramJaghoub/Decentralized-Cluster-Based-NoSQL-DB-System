@@ -1,7 +1,6 @@
 package com.example.Database.cluster;
 
 import com.example.Database.file.FileService;
-import com.example.Database.model.Document;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.json.simple.JSONObject;
 import org.springframework.http.HttpEntity;
@@ -10,15 +9,16 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.Collections;
+;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class BroadcastService {
 
-    private void broadcast(String url, HttpMethod method, boolean isBroadcasted, Optional<JSONObject> dataOpt, Map<String, String> additionalHeaders) {
+    // This internal method will do the broadcasting logic
+    private static void broadcastInternal(String url, HttpMethod method, boolean isBroadcasted, Optional<JSONObject> dataOpt, Map<String, String> additionalHeaders) {
         try {
             JsonNode adminCredentials = FileService.readAdminCredentialsFromJson();
             RestTemplate restTemplate = new RestTemplate();
@@ -32,6 +32,7 @@ public class BroadcastService {
             }
             HttpEntity<String> requestEntity = dataOpt.map(jsonObject ->
                     new HttpEntity<>(jsonObject.toJSONString(), headers)).orElseGet(() -> new HttpEntity<>(headers));
+
             restTemplate.exchange(url, method, requestEntity, String.class);
         } catch (Exception e) {
             System.out.println("[ERROR] Broadcasting failed. URL: " + url);
@@ -39,15 +40,39 @@ public class BroadcastService {
         }
     }
 
-    public void broadcast(String url, HttpMethod method, JSONObject data, boolean isBroadcasted) {    //for creating a document (data is required)
-        broadcast(url, method, isBroadcasted, Optional.of(data), Collections.emptyMap());
-    }
+    public static class BroadcastRequestBuilder {
+        private String url;
+        private HttpMethod method;
+        private boolean isBroadcasted;
+        private Optional<JSONObject> dataOpt = Optional.empty();
+        private Map<String, String> additionalHeaders = new HashMap<>();
 
-    public void broadcast(String url, HttpMethod method, boolean isBroadcasted) {
-        broadcast(url, method, isBroadcasted, Optional.empty(), Collections.emptyMap());
-    }
+        public BroadcastRequestBuilder withUrl(String url) {
+            this.url = url;
+            return this;
+        }
 
-    public void broadcast(String url, HttpMethod method, boolean isBroadcasted, Map<String, String> additionalHeaders) {
-        broadcast(url, method, isBroadcasted, Optional.empty(), additionalHeaders);
+        public BroadcastRequestBuilder withMethod(HttpMethod method) {
+            this.method = method;
+            return this;
+        }
+
+        public BroadcastRequestBuilder isBroadcasted(boolean isBroadcasted) {
+            this.isBroadcasted = isBroadcasted;
+            return this;
+        }
+
+        public BroadcastRequestBuilder withData(JSONObject data) {
+            this.dataOpt = Optional.ofNullable(data);
+            return this;
+        }
+
+        public BroadcastRequestBuilder withAdditionalHeaders(Map<String, String> additionalHeaders) {
+            this.additionalHeaders = additionalHeaders;
+            return this;
+        }
+        public void broadcast() {
+            broadcastInternal(url, method, isBroadcasted, dataOpt, additionalHeaders);
+        }
     }
 }

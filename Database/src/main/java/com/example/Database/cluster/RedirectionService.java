@@ -9,9 +9,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.json.simple.JSONObject;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-
-import javax.print.Doc;
 
 @Service
 public class RedirectionService {
@@ -23,20 +23,29 @@ public class RedirectionService {
         JsonNode adminCredentials = FileService.readAdminCredentialsFromJson();
         headers.set("username", adminCredentials.get("username").asText());
         headers.set("password", adminCredentials.get("password").asText());
-        headers.set("X-Broadcast", "false");
         return headers;
     }
 
     public ApiResponse redirectToWorkerForCreation(Database database, Collection collection, Document document, int workerPort) {
-        System.out.println("[INFO] Starting redirectToNodeWithAffinity for creation method...");
-        HttpHeaders headers = getHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        String url = "http://worker" + workerPort + ":9000/api/" + database.getDatabaseName()
-                + "/" + collection.getCollectionName() + "/createDoc";
-        System.out.println("[REDIRECT] Constructed redirect URL: " + url);
-        HttpEntity<String> requestEntity = new HttpEntity<>(document.getData().toJSONString(), headers);
-        ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
-        return new ApiResponse(responseEntity.getBody(), (HttpStatus) responseEntity.getStatusCode());
+        try {
+            System.out.println("[INFO] Starting redirectToNodeWithAffinity for creation method...");
+            HttpHeaders headers = getHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            String url = "http://worker" + workerPort + ":9000/api/" + database.getDatabaseName()
+                    + "/" + collection.getCollectionName() + "/createDoc";
+            System.out.println("Constructed redirect URL: " + url);
+            HttpEntity<String> requestEntity = new HttpEntity<>(document.getData().toJSONString(), headers);
+            ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+            return new ApiResponse(responseEntity.getBody(), (HttpStatus) responseEntity.getStatusCode());
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            String errorMsg = e.getResponseBodyAsString();
+            HttpStatus status = (HttpStatus) e.getStatusCode();
+            System.out.println("Error during redirect: " + status + " - " + errorMsg);
+            return new ApiResponse(errorMsg, status);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ApiResponse("Unexpected error occurred during redirection", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     public ApiResponse redirectToWorkerForDeletion(Database database, Collection collection, Document document, int workerPort) {
@@ -44,7 +53,7 @@ public class RedirectionService {
         HttpHeaders headers = getHeaders();
         String url = "http://worker" + workerPort + ":9000/api/" + database.getDatabaseName() + "/"
                 + collection.getCollectionName() + "/deleteDoc?doc_id=" + document.getId();
-        System.out.println("[REDIRECT] Constructed redirect URL: " + url);
+        System.out.println("Constructed redirect URL: " + url);
         HttpEntity<JSONObject> requestEntity = new HttpEntity<>(headers);
         ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.DELETE, requestEntity, String.class);
         return new ApiResponse(responseEntity.getBody(), (HttpStatus) responseEntity.getStatusCode());
@@ -56,7 +65,7 @@ public class RedirectionService {
         headers.set("newPropertyValue", document.getPropertyValue().toString());
         String url = "http://worker" + workerPort + ":9000/api/" + database.getDatabaseName() + "/"
                 + collection.getCollectionName() + "/updateDoc/" + document.getPropertyName() + "?doc_id=" + document.getId();
-        System.out.println("[REDIRECT] Constructed redirect URL: " + url);
+        System.out.println("Constructed redirect URL: " + url);
         HttpEntity<JSONObject> requestEntity = new HttpEntity<>(headers);
         ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.PUT, requestEntity, String.class);
         return new ApiResponse(responseEntity.getBody(), (HttpStatus) responseEntity.getStatusCode());

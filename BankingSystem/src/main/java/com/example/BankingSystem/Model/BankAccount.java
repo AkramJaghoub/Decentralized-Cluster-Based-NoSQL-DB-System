@@ -23,18 +23,6 @@ public class BankAccount{
     private String password;
     private String _id;
 
-    public static BankAccount addBankAccount(JSONObject accountObject) {
-        BankAccount bankAccount = new BankAccount();
-        bankAccount.setAccountNumber((long) accountObject.get("accountNumber"));
-        bankAccount.setClientName((String) accountObject.get("clientName"));
-        bankAccount.setBalance((double) accountObject.get("balance"));
-        bankAccount.setAccountType(AccountTypes.valueOf((String) accountObject.get("accountType")));
-        bankAccount.setHasInsurance((boolean) accountObject.get("hasInsurance"));
-        bankAccount.setPassword((String) accountObject.get("password"));
-        return bankAccount;
-    }
-
-
     public JSONObject bankAccountToJSON() {
         return JsonBuilder.getBuilder()
                 .add("accountNumber",accountNumber)

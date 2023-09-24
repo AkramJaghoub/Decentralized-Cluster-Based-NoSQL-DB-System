@@ -1,38 +1,35 @@
 package com.example.BankingSystem.services;
 
 import com.example.BankingSystem.Model.Customer;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.servlet.http.HttpSession;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 
 @Service
 public class CustomerService {
 
-    @Autowired
     AuthenticationService authenticationService;
-    @Autowired
     ObjectMapper objectMapper;
 
+    @Autowired
+    public CustomerService(AuthenticationService authenticationService, ObjectMapper objectMapper){
+        this.authenticationService = authenticationService;
+        this.objectMapper = objectMapper;
+    }
 
     public Double getAccountBalance(HttpSession session) {
         Customer customer = (Customer) session.getAttribute("login");
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set("accountNumber", String.valueOf(customer.getAccountNumber()));
-        headers.set("propertyName", "balance");
         String workerPort = authenticationService.getWorker(String.valueOf(customer.getAccountNumber()));
-        String url = "http://worker" + workerPort + ":9000/api/search";
+        String url = "http://worker" + workerPort + ":9000/api/search/balance";
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
         if (response.getStatusCode() == HttpStatus.OK) {
             try {
@@ -50,9 +47,8 @@ public class CustomerService {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set("accountNumber", String.valueOf(customer.getAccountNumber()));
-        headers.set("propertyName", "clientName");
         String workerPort = authenticationService.getWorker(String.valueOf(customer.getAccountNumber()));
-        String url = "http://worker" + workerPort + ":9000/api/search";
+        String url = "http://worker" + workerPort + ":9000/api/search/clientName";
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
         if (response.getStatusCode() == HttpStatus.OK) {
             return response.getBody();
@@ -60,39 +56,37 @@ public class CustomerService {
         return "couldn't get client's name";
     }
 
-    public String depositAmount(Double amount, HttpSession session) {
+    public ResponseEntity<String> depositAmount(Double amount, HttpSession session) {
         Customer customer = (Customer) session.getAttribute("login");
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set("accountNumber", String.valueOf(customer.getAccountNumber()));
-        headers.set("password", customer.getPassword());
         headers.setContentType(MediaType.APPLICATION_JSON);
         ObjectNode rootNode = objectMapper.createObjectNode();
         rootNode.put("amount", amount);
         String workerPort = authenticationService.getWorker(String.valueOf(customer.getAccountNumber()));
-        String url = "http://worker" + workerPort + ":9000/api/deposit/" + customer.getAccountNumber();
+        String url = "http://worker" + workerPort + ":9000/api/deposit";
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(rootNode.toString(), headers), String.class);
         if (response.getStatusCode() == HttpStatus.ACCEPTED) {
-            return response.getBody();
+            return ResponseEntity.accepted().body(response.getBody());
         }
-        return "Operation failed";
+        return ResponseEntity.badRequest().body("Operation failed");
     }
 
-    public String withdrawAmount(Double amount, HttpSession session) {
+    public ResponseEntity<String> withdrawAmount(Double amount, HttpSession session) {
         Customer customer = (Customer) session.getAttribute("login");
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set("accountNumber", String.valueOf(customer.getAccountNumber()));
-        headers.set("password", customer.getPassword());
         headers.setContentType(MediaType.APPLICATION_JSON);
         ObjectNode rootNode = objectMapper.createObjectNode();
         rootNode.put("amount", amount);
         String workerPort = authenticationService.getWorker(String.valueOf(customer.getAccountNumber()));
-        String url = "http://worker" + workerPort + ":9000/api/withdraw/" + customer.getAccountNumber();
+        String url = "http://worker" + workerPort + ":9000/api/withdraw";
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(rootNode.toString(), headers), String.class);
         if (response.getStatusCode() == HttpStatus.ACCEPTED) {
-            return response.getBody();
+            return ResponseEntity.accepted().body(response.getBody());
         }
-        return "Operation failed";
+        return ResponseEntity.badRequest().body("Operation failed");
     }
 }

@@ -8,7 +8,7 @@ import org.json.simple.JSONObject;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.util.Optional;;
+import java.util.Optional;
 
 @Service
 public class AuthenticationService {
@@ -23,19 +23,20 @@ public class AuthenticationService {
         }
         Admin adminCredentials = adminCredentialsOpt.get();
         String fileUsername = adminCredentials.getUsername();
+        String hashedPassword = PasswordHashing.hashPassword(password);  //to compare hashed passwords
         String filePassword = adminCredentials.getPassword();
-        return fileUsername.equals(username) && filePassword.equals(password);
+        return fileUsername.equals(username) && filePassword.equals(hashedPassword);
     }
 
     public boolean adminExists() {
         return FileServices.getAdminCredentials().isPresent();
     }
 
-    public boolean isUserExists(Customer customer) {
+    public boolean isCustomerExists(Customer customer) {
         if (customer == null || customer.getAccountNumber() == null) {
             return false;
         }
-        String path = FileServices.getUserJsonPath("users");
+        String path = FileServices.getUserJsonPath("customers");
         File jsonFile = new File(path);
         if (jsonFile.exists()) {
             JSONArray jsonArray = FileServices.readJsonArrayFile(jsonFile);

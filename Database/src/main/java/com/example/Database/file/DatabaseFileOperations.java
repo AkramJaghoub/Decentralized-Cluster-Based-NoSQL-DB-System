@@ -8,15 +8,11 @@ import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.http.HttpStatus;
-
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Stream;
 
 public final class DatabaseFileOperations {
 
@@ -124,13 +120,15 @@ public final class DatabaseFileOperations {
     }
 
     @SuppressWarnings("unchecked")
-    public synchronized static ApiResponse appendDocumentToFile(String collectionName, Document document) {
+    public static ApiResponse appendDocumentToFile(String collectionName, Document document) {
         File collectionFile = FileService.getCollectionFile(collectionName);
         JSONArray jsonArray = FileService.readJsonArrayFile(collectionFile);
         if (jsonArray == null) {
             return new ApiResponse("Failed to read the existing documents", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        jsonArray.add(document.getData());
+        JSONObject documentData = document.getData();
+        documentData.put("_version", 0);
+        jsonArray.add(documentData);
         boolean writeStatus = FileService.writeJsonArrayFile(collectionFile, jsonArray);
         if (!writeStatus) {
             return new ApiResponse("Failed to append document.", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -153,28 +151,6 @@ public final class DatabaseFileOperations {
         return Integer.parseInt(searchResult);
     }
 
-    public static Map<String, Integer> readDocumentIndexesFromFile(String collectionName) {
-        String indexFilePath = FileService.getIndexFilePath(collectionName);
-        Map<String, Integer> documentIdIndexMap = new HashMap<>();
-        try {
-            if (!FileService.isFileExists(indexFilePath)) {
-                return documentIdIndexMap;
-            }
-            List<String> lines = Files.readAllLines(Paths.get(indexFilePath), StandardCharsets.UTF_8);
-            for (String line : lines) {
-                String[] parts = line.split(",");
-                if (parts.length == 2) {
-                    String documentId = parts[0].trim();
-                    int index = Integer.parseInt(parts[1].trim());
-                    documentIdIndexMap.put(documentId, index);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return documentIdIndexMap;
-    }
-
     public static JSONObject readDocumentFromFile(String collectionName, int index) {
         File collectionFile = FileService.getCollectionFile(collectionName);
         JSONArray jsonArray = FileService.readJsonArrayFile(collectionFile);
@@ -183,6 +159,7 @@ public final class DatabaseFileOperations {
         }
         return null;
     }
+
 
 
     public static JSONObject deleteDocument(String collectionName, String documentId, IndexManager indexManager) {
@@ -203,31 +180,58 @@ public final class DatabaseFileOperations {
     }
 
     @SuppressWarnings("unchecked")
-    public static ApiResponse updateDocumentProperty(String collectionName, String documentId, String propertyName, Object newValue, IndexManager indexManager) {
+    public static ApiResponse updateDocumentProperty(String collectionName, Document document, String propertyName, Object newValue, IndexManager indexManager) {
         try {
+            String documentId = document.getId();
             JSONArray jsonArray = new JSONArray();
             int index = getDocumentIndex(collectionName, documentId, jsonArray, indexManager);
+
             if (index < 0) {
                 return new ApiResponse("Document with id " + documentId + " not found in " + collectionName, HttpStatus.NOT_FOUND);
             }
             JSONObject documentData = (JSONObject) jsonArray.get(index);
-            Object oldValue = documentData.get(propertyName);
-            if (Objects.equals(oldValue, newValue)) {
-                System.out.println("No update needed for documentId: " + documentId + ". Old value: " + oldValue + ", New Value: " + newValue);
-                return new ApiResponse("No changes needed. Document with id " + documentId + " in " + collectionName + " already has the same value for property " + propertyName, HttpStatus.CONFLICT);
+            if (documentData.containsKey("_version") && document.getVersion() != (long) documentData.get("_version")) {
+                return new ApiResponse("Version mismatch. Please retrieve the latest version and try again.", HttpStatus.CONFLICT);
             }
             documentData.put(propertyName, newValue);
-            File collectionFile = FileService.getCollectionFile(collectionName);
-            boolean writeStatus = FileService.writeJsonArrayFile(collectionFile, jsonArray);
-            indexManager.insertIntoPropertyIndex(collectionName, propertyName, newValue.toString(), documentId);
-            if (oldValue != null) {
-                indexManager.deleteFromPropertyIndex(collectionName, propertyName, oldValue.toString());
+            documentData.put("_version", document.getVersion() + 1);
+            document.setVersion(document.getVersion() + 1);
+            boolean writeStatus = FileService.writeJsonArrayFile(FileService.getCollectionFile(collectionName), jsonArray);
+            if (!writeStatus) {
+                return new ApiResponse("Failed to update document.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            return writeStatus ?
-                    new ApiResponse("Document with id " + documentId + " updated successfully in " + collectionName, HttpStatus.ACCEPTED) :
-                    new ApiResponse("Failed to update document with id " + documentId + " in " + collectionName, HttpStatus.INTERNAL_SERVER_ERROR);
+            if (documentData.containsKey(propertyName)) {
+                indexManager.deleteFromPropertyIndex(collectionName, propertyName, documentData.get(propertyName).toString());
+            }
+            indexManager.insertIntoPropertyIndex(collectionName, propertyName, newValue.toString(), documentId);
+            return new ApiResponse("Document with id " + documentId + " updated successfully in " + collectionName, HttpStatus.ACCEPTED);
         } catch (Exception e) {
             return new ApiResponse("Error updating document property: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    public static JSONObject fetchDocumentById(String collectionName, String documentId, IndexManager indexManager) {
+        try {
+            JSONArray jsonArray = new JSONArray();
+            int index = getDocumentIndex(collectionName, documentId, jsonArray, indexManager);
+            if (index < 0) {
+                return null;
+            }
+            return (JSONObject) jsonArray.get(index);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static Document fetchDocumentFromDatabase(String documentId, String collectionName, IndexManager indexManager) {
+        JSONObject jsonObject = fetchDocumentById(collectionName, documentId, indexManager);
+        if (jsonObject == null) {
+            return null;
+        }
+        Document document = new Document(documentId);
+        if (jsonObject.containsKey("_version")) {
+            document.setVersion(Integer.parseInt(jsonObject.get("_version").toString()));
+        }
+        return document;
     }
 }

@@ -4,7 +4,6 @@ import com.example.BankingSystem.Model.Admin;
 import org.springframework.stereotype.Service;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.*;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import lombok.SneakyThrows;
@@ -21,7 +20,6 @@ public class CollectionService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("username", admin.getUsername());
         headers.set("password", admin.getPassword());
-        headers.set("X-Broadcast", "false");
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         String url = "http://worker1:9000/api/" + dbName + "/createCol/" + collectionName;
         try {
@@ -31,14 +29,12 @@ public class CollectionService {
         }
     }
 
-    @SneakyThrows
     public ResponseEntity<String> deleteCollection(String dbName, String collectionName, HttpSession session) {
         Admin admin = (Admin) session.getAttribute("login");
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set("username", admin.getUsername());
         headers.set("password", admin.getPassword());
-        headers.set("X-Broadcast", "false");
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         String url = "http://worker1:9000/api/" + dbName + "/deleteCol/" + collectionName;
         try {
@@ -48,7 +44,6 @@ public class CollectionService {
         }
     }
 
-    @SneakyThrows
     public List<String> fetchExistingCollections(String dbName, HttpSession session) {
         Admin admin = (Admin) session.getAttribute("login");
         RestTemplate restTemplate = new RestTemplate();

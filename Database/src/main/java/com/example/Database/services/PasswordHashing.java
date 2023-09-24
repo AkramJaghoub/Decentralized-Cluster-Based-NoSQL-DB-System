@@ -21,7 +21,7 @@ public final class PasswordHashing {
         }
     }
 
-    static boolean isAlreadyHashed(String potentialPassword) {
+    public static boolean isAlreadyHashed(String potentialPassword) {
         return potentialPassword.length() == 64;
     }
 }

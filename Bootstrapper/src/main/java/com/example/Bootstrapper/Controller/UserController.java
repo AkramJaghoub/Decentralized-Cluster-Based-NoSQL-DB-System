@@ -10,13 +10,19 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/bootstrapper")
 public class UserController {
+
+    private final UserService userService;
+
+    private final AuthenticationService authenticationService;
+
     @Autowired
-    UserService userService;
-    @Autowired
-    AuthenticationService authenticationService;
+    public UserController(UserService userService, AuthenticationService authenticationService){
+        this.userService = userService;
+        this.authenticationService = authenticationService;
+    }
 
     @PostMapping("/add/customer")
-    public String addUser(@RequestHeader("accountNumber") String accountNumber,
+    public String addCustomer(@RequestHeader("accountNumber") String accountNumber,
                           @RequestHeader("password") String password,
                           @RequestHeader("adminUsername") String adminUsername,
                           @RequestHeader("adminPassword") String adminPassword) {
@@ -25,11 +31,25 @@ public class UserController {
         }
         System.out.println("Received request to register a new customer with account number: " + accountNumber);
         Customer customer = new Customer(accountNumber, password);
-        if (authenticationService.isUserExists(customer)) {
+        if (authenticationService.isCustomerExists(customer)) {
             return "Customer already exists";
         }
         userService.addCustomer(customer);
-        return "Customer added successfully";
+        return "Customer has been added successfully";
+    }
+
+    @DeleteMapping ("/delete/customer")
+    public String deleteCustomer(@RequestHeader("accountNumber") String accountNumber,
+                                 @RequestHeader("adminUsername") String adminUsername,
+                                 @RequestHeader("adminPassword") String adminPassword) {
+
+        if(!authenticationService.isAdmin(adminUsername, adminPassword)){
+            return "User is not authorized";
+        }
+
+        System.out.println("Received request to delete the customer with account number: " + accountNumber);
+        userService.deleteCustomer(accountNumber);
+        return "customer has been deleted successfully";
     }
 
 
@@ -42,6 +62,6 @@ public class UserController {
         }
         Admin admin = new Admin(username, password);
         userService.addAdmin(admin);
-        return "admin added successfully";
+        return "admin has been added successfully";
     }
 }

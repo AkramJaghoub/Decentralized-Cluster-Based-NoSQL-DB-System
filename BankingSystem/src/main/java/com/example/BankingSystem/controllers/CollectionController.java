@@ -15,8 +15,12 @@ import org.springframework.http.HttpStatus;
 @RequestMapping("/admin-dashboard/banking-system")
 public class CollectionController {
 
+    private final CollectionService collectionService;
+
     @Autowired
-    CollectionService collectionService;
+    public CollectionController(CollectionService collectionService){
+        this.collectionService = collectionService;
+    }
 
     @PostMapping("/createCol")
     public ResponseEntity<?> createCollection(@RequestParam("db_name") String dbName,
@@ -31,7 +35,7 @@ public class CollectionController {
         String message = response.getBody();
         if (status == HttpStatus.CREATED) {
             List<String> allCollections = collectionService.getAllCollections(dbName, session);
-            return new ResponseEntity<>(allCollections, status);
+            return ResponseEntity.status(status).body(allCollections);
         } else if (status == HttpStatus.CONFLICT) {
             return ResponseEntity.status(status).body(message);
         } else {
@@ -52,7 +56,7 @@ public class CollectionController {
         String message = responseEntity.getBody();
         if (status == HttpStatus.ACCEPTED) {
             List<String> allCollections = collectionService.getAllCollections(dbName, session);
-            return new ResponseEntity<>(allCollections, status);
+            return ResponseEntity.status(status).body(allCollections);
         } else if (status == HttpStatus.NOT_FOUND){
             return ResponseEntity.status(status).body(message);
         }else{
@@ -72,7 +76,7 @@ public class CollectionController {
         if (allCollections.isEmpty()) {
             return ResponseEntity.noContent().build();
         } else {
-            return ResponseEntity.ok(allCollections);
+            return ResponseEntity.status(HttpStatus.OK).body(allCollections);
         }
     }
 }

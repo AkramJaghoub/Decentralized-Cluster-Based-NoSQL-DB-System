@@ -83,9 +83,9 @@
             width: 100%;
         }
 
-        [th\\:if="true"] .error-message {
-                             display: flex;
-                         }
+        .error-message:not(:empty) {
+            display: flex;
+        }
 
         .role-selection {
             display: flex;
@@ -143,11 +143,11 @@
         </div>
         <div class="role-selection">
             <div class="role-option">
-                <input type="radio" id="admin" name="role" value="admin" required>
+                <input type="radio" id="admin" name="role" value="admin" th:checked="${selectedRole == 'admin'}" required>
                 <label for="admin">Admin</label>
             </div>
             <div class="role-option">
-                <input type="radio" id="customer" name="role" value="customer" checked required>
+                <input type="radio" id="customer" name="role" value="customer" th:checked="${selectedRole == 'customer'}" required>
                 <label for="customer">Customer</label>
             </div>
         </div>
@@ -177,10 +177,27 @@
 </div>
 
 <script>
-    function toggleRoleInput() {
+    function toggleRoleInput(e) {
         const role = document.querySelector('input[name="role"]:checked').value;
         const adminInput = document.getElementById('adminInput');
         const customerInput = document.getElementById('customerInput');
+
+        // Clear form values
+        const formElements = document.querySelector('form').elements;
+        for (let i = 0; i < formElements.length; i++) {
+            if (formElements[i].type === "text" || formElements[i].type === "password") {
+                formElements[i].value = '';
+            }
+        }
+
+        // Only hide the error message if the role is manually toggled, not if it's displayed by the server response
+        if(e && e.type === 'change') {
+            const errorMessage = document.querySelector('.error-message');
+            if (errorMessage) {
+                errorMessage.textContent = '';
+                errorMessage.style.display = 'none'; // Hide the error message container.
+            }
+        }
 
         if (role === 'admin') {
             adminInput.style.display = 'block';
@@ -190,8 +207,13 @@
             customerInput.style.display = 'block';
         }
     }
-    document.getElementById('admin').addEventListener('change', toggleRoleInput);
-    document.getElementById('customer').addEventListener('change', toggleRoleInput);
+
+    document.getElementById('admin').addEventListener('change', function(e) {
+        toggleRoleInput(e);
+    });
+    document.getElementById('customer').addEventListener('change', function(e) {
+        toggleRoleInput(e);
+    });
     toggleRoleInput();
 </script>
 </body>

@@ -7,8 +7,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class BootstrapperRunner implements CommandLineRunner {
 
+
+    private final NetworkService networkService;
+
     @Autowired
-    private NetworkService networkService;
+    public BootstrapperRunner(NetworkService networkService){
+        this.networkService = networkService;
+    }
 
     @Override
     public void run(String... args) {

@@ -25,5 +25,3 @@ public final class SchemaBuilder {
         return schema;
     }
 }
-
-

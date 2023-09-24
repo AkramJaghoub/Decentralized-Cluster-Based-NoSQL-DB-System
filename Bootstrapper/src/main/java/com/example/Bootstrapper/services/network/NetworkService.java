@@ -2,7 +2,6 @@ package com.example.Bootstrapper.services.network;
 
 import com.example.Bootstrapper.loadbalancer.LoadBalancer;
 import com.example.Bootstrapper.model.Node;
-import com.example.Bootstrapper.services.NodesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -11,16 +10,22 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class NetworkService {
 
+
+    private final NodesService nodesService;
+    private final LoadBalancer loadBalancer;
+
+
     @Autowired
-    private NodesService nodesService;
-    @Autowired
-    private LoadBalancer loadBalancer;
+    public NetworkService(NodesService nodesService, LoadBalancer loadBalancer){
+        this.nodesService = nodesService;
+        this.loadBalancer = loadBalancer;
+    }
 
 
     public void run() {
         createNetwork();
         checkClusterStatus();
-        loadBalancer.loadAndBalanceExistingUsers();
+        loadBalancer.balanceExistingUsers();
     }
 
     private void createNetwork() {

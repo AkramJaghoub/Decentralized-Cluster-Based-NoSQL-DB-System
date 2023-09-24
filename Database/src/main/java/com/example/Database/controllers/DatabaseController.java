@@ -8,41 +8,47 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api")
 public class DatabaseController {
+
+    private final AuthenticationService authenticationService;
+    private final QueryManager queryManager;
+
     @Autowired
-    private AuthenticationService authenticationService;
-    @Autowired
-    private QueryManager queryManager;
+    public DatabaseController(AuthenticationService authenticationService, QueryManager queryManager){
+        this.authenticationService = authenticationService;
+        this.queryManager = queryManager;
+    }
 
     @PostMapping("/createDB/{db_name}")
     public ResponseEntity<String> createDatabase(@PathVariable("db_name") String dbName,
-                                                 @RequestHeader("X-Broadcast") String isBroadcasted,
+                                                 @RequestHeader(value = "X-Broadcast", required = false, defaultValue = "false") String isBroadcasted,
                                                  @RequestHeader("username") String username,
                                                  @RequestHeader("password") String password) {
 
         if(!authenticationService.isAdmin(username, password)){
-            return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authorized");
         }
         FileService.setDatabaseDirectory(dbName);
         ApiResponse response = queryManager.createDatabase(dbName, isBroadcasted);
-        return new ResponseEntity<>(response.getMessage(), response.getStatus());
+        return ResponseEntity.status(response.getStatus()).body(response.getMessage());
     }
 
     @DeleteMapping("/deleteDB/{db_name}")
     public ResponseEntity<String> deleteDatabase(@PathVariable("db_name") String dbName,
-                                                 @RequestHeader("X-Broadcast") String isBroadcasted,
+                                                 @RequestHeader(value = "X-Broadcast", required = false, defaultValue = "false") String isBroadcasted,
                                                  @RequestHeader("username") String username,
                                                  @RequestHeader("password") String password) {
         if(!authenticationService.isAdmin(username, password)){
-            return new ResponseEntity<>("User is not authorized", HttpStatus.UNAUTHORIZED);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User is not authorized");
         }
         FileService.setDatabaseDirectory(dbName);
         ApiResponse response = queryManager.deleteDatabase(dbName, isBroadcasted);
-        return new ResponseEntity<>(response.getMessage(), response.getStatus());
+        return ResponseEntity.status(response.getStatus()).body(response.getMessage());
     }
 
     @GetMapping("/fetchExistingDatabases")

@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Objects;
+
 @Service
 public class AuthenticationService {
 
@@ -13,7 +15,12 @@ public class AuthenticationService {
     }
 
     public ResponseEntity<String> checkCustomer(String accountNumber, String password) {
-        return checkCredentials(getWorker(accountNumber), "accountNumber", accountNumber, password, "/api/check/customer");
+        String worker = getWorker(accountNumber);
+
+        if (worker == null || worker.contains("not found")) {
+            return new ResponseEntity<>("Customer does not exist,\n please contact your bank or try again.", HttpStatus.BAD_REQUEST);
+        }
+        return checkCredentials(worker, "accountNumber", accountNumber, password, "/api/check/customer");
     }
 
     public String getWorker(String identity) {
@@ -21,9 +28,19 @@ public class AuthenticationService {
         String url = "http://host.docker.internal:8081/bootstrapper/getWorker/" + identity;
         HttpHeaders headers = new HttpHeaders();
         HttpEntity<String> request = new HttpEntity<>(headers);
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
-        return (response.getStatusCode() == HttpStatus.OK) ? response.getBody() : "Not Found";
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
+            return response.getBody();
+        } catch (HttpClientErrorException.NotFound e) {
+            return "not found";
+        } catch (HttpClientErrorException e) {
+            return e.getStatusCode().toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
     }
+
 
     private ResponseEntity<String> checkCredentials(String workerId, String identityType, String identity, String password, String url) {
         RestTemplate restTemplate = new RestTemplate();

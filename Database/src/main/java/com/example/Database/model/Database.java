@@ -18,9 +18,9 @@ public class Database {
         return databaseName;
     }
 
-   public ReentrantLock getCollectionLock(){
+    public ReentrantLock getCollectionLock() {
         return collectionLock;
-   }
+    }
 
     public void createCollection(String collectionName) {
         if (collectionName == null || collectionName.trim().isEmpty()) {

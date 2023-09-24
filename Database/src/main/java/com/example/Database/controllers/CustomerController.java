@@ -10,19 +10,22 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
 public class CustomerController {
-    @Autowired
-    private AccountDirectoryService accountDirectoryService;
-    @Autowired
-    private QueryManager queryManager;
 
-    @PostMapping("/deposit/{accountNumber}")
-    public ResponseEntity<String> deposit(@PathVariable String accountNumber,
+    private final AccountDirectoryService accountDirectoryService;
+    private final QueryManager queryManager;
+
+    @Autowired
+    public CustomerController(AccountDirectoryService accountDirectoryService, QueryManager queryManager){
+        this.accountDirectoryService = accountDirectoryService;
+        this.queryManager = queryManager;
+    }
+
+    @PostMapping("/deposit")
+    public ResponseEntity<String> deposit(@RequestHeader("accountNumber") String accountNumber,
                                           @RequestBody JSONObject request) {
         double amountToDeposit = Double.parseDouble(request.get("amount").toString());
         System.out.println(amountToDeposit + " amount being deposited");
@@ -32,16 +35,17 @@ public class CustomerController {
         String documentId = accountReference.getDocumentId();
         String propertyName = "balance";
 
-        ApiResponse response = queryManager.search( //first search for the existing balance
+        ApiResponse response = queryManager.searchForProperty( //first search for the existing balance
                 dbName,
                 collectionName,
                 documentId,
                 propertyName
         );
 
+        //response.getMessage has the original balance value
         double newBalance = Double.parseDouble(response.getMessage()) + amountToDeposit; //update the balance after withdrawing
 
-        response = queryManager.updateProperty(
+        response = queryManager.updateDocumentProperty(
                 dbName,
                 collectionName,
                 documentId,
@@ -49,15 +53,17 @@ public class CustomerController {
                 newBalance,
                 "false"
         );
+
+        response.setMessage(String.valueOf(newBalance));
         if (response.getStatus() == HttpStatus.ACCEPTED) {
-            return new ResponseEntity<>(String.valueOf(newBalance), HttpStatus.ACCEPTED); // Return the new balance
+            return ResponseEntity.status(response.getStatus()).body(response.getMessage()); // Return the new balance
         } else {
-            return ResponseEntity.badRequest().body("Deposit failed");
+            return ResponseEntity.status(response.getStatus()).body("Deposit failed");
         }
     }
 
-    @PostMapping("/withdraw/{accountNumber}")
-    public ResponseEntity<String> withdraw(@PathVariable String accountNumber,
+    @PostMapping("/withdraw")
+    public ResponseEntity<String> withdraw(@RequestHeader("accountNumber") String accountNumber,
                                            @RequestBody JSONObject request) {
         double amountToWithdraw = Double.parseDouble(request.get("amount").toString());
         AccountReference accountReference = accountDirectoryService.getAccountLocation(accountNumber);
@@ -66,16 +72,17 @@ public class CustomerController {
         String documentId = accountReference.getDocumentId();
         String propertyName = "balance";
 
-        ApiResponse response = queryManager.search( //first search for the existing balance
+        ApiResponse response = queryManager.searchForProperty( //first search for the existing balance
                 dbName,
                 collectionName,
                 documentId,
                 propertyName
         );
 
+        //response.getMessage has the original balance value
         double newBalance = Double.parseDouble(response.getMessage()) - amountToWithdraw;  //update the balance after withdrawing
 
-        response = queryManager.updateProperty(
+        response = queryManager.updateDocumentProperty(
                 dbName,
                 collectionName,
                 documentId,
@@ -84,10 +91,11 @@ public class CustomerController {
                 "false"
         );
 
+        response.setMessage(String.valueOf(newBalance));
         if (response.getStatus() == HttpStatus.ACCEPTED) {
-            return new ResponseEntity<>(String.valueOf(newBalance), HttpStatus.ACCEPTED); // Return the new balance
+            return ResponseEntity.status(response.getStatus()).body(response.getMessage()); // Return the new balance
         } else {
-            return ResponseEntity.badRequest().body("Withdrawal failed");
+            return ResponseEntity.status(response.getStatus()).body("Withdrawal failed");
         }
     }
 }

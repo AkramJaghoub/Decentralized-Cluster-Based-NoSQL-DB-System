@@ -17,11 +17,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class LoginController {
 
+
+    private final AuthenticationService authenticateService;
+
     @Autowired
-    private AuthenticationService authenticateService;
+    public LoginController(AuthenticationService authenticateService){
+        this.authenticateService = authenticateService;
+    }
 
     @GetMapping("/login")
-    public String loginPage() {
+    public String loginPage(Model model) {
+        model.addAttribute("selectedRole", "customer");
         return "login-page";
     }
 
@@ -59,6 +65,7 @@ public class LoginController {
             }
         }
         model.addAttribute("result", responseBody);
+        model.addAttribute("selectedRole", roleString);
         return "login-page";
     }
 }

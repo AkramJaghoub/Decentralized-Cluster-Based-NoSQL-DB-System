@@ -13,9 +13,11 @@ public class JsonBuilder {
         jsonObject.put(key,value);
         return this;
     }
+
     public JSONObject build(){
         return jsonObject;
     }
+
     public static JsonBuilder getBuilder(){
         return new JsonBuilder();
     }

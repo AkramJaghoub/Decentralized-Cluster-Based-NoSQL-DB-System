@@ -1,20 +1,22 @@
 package com.example.Database.controllers;
 
-import com.example.Database.model.ApiResponse;
 import com.example.Database.services.AuthenticationService;
 import com.example.Database.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
 public class UserController {
 
+    private final AuthenticationService authenticationService;
+    private final UserService userService;
+
     @Autowired
-    AuthenticationService authenticationService;
-    @Autowired
-    UserService userService;
+    public UserController(AuthenticationService authenticationService, UserService userService){
+        this.authenticationService = authenticationService;
+        this.userService = userService;
+    }
 
     @PostMapping("/add/customer")
     public String addCustomer(@RequestHeader("adminUsername") String adminUsername,
@@ -27,23 +29,19 @@ public class UserController {
         return userService.addCustomer(accountNumber, password);
     }
 
+    @DeleteMapping ("/delete/customer")
+    public String deleteCustomer(@RequestHeader("accountNumber") String accountNumber,
+                                 @RequestHeader("adminUsername") String adminUsername,
+                                 @RequestHeader("adminPassword") String adminPassword){
+        if(!authenticationService.isAdmin(adminUsername, adminPassword)){
+            return "User is not authorized";
+        }
+        return userService.deleteCustomer(accountNumber);
+    }
+
     @PostMapping("/add/admin")
     public String addAdmin(@RequestHeader("username") String username,
                            @RequestHeader("password") String password) {
         return userService.addAdmin(username, password);
-    }
-
-    @GetMapping("/check/admin")
-    public ResponseEntity<String> checkAdminCredentials(@RequestHeader("username") String username,
-                                                             @RequestHeader("password") String password) {
-        ApiResponse response = authenticationService.verifyAdminCredentials(username, password);
-        return new ResponseEntity<>(response.getMessage(), response.getStatus());
-    }
-
-    @GetMapping("/check/customer")
-    public ResponseEntity<String> checkCustomerCredentials(@RequestHeader("accountNumber") String accountNumber,
-                                                                @RequestHeader("password") String password) {
-        ApiResponse response = authenticationService.verifyCustomerCredentials(accountNumber, password);
-        return new ResponseEntity<>(response.getMessage(), response.getStatus());
     }
 }

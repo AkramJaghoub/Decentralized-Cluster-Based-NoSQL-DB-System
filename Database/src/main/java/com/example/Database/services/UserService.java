@@ -5,6 +5,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.stereotype.Service;
 import java.io.File;
+import java.util.Iterator;
 
 @Service
 public class UserService {
@@ -27,33 +28,61 @@ public class UserService {
         }
         JSONObject newCustomer = new JSONObject();
         newCustomer.put("accountNumber", accountNumber);
-        newCustomer.put("password", password);
+        newCustomer.put("password", password); //hashing the password
         customersArray.add(newCustomer);
         FileService.writeJsonArrayFile(new File(filePath), customersArray);
         return "Customer added successfully";
     }
 
+
+    @SuppressWarnings("unchecked")
+    public String deleteCustomer(String accountNumber) {
+        String filePath = FileService.getUserJsonPath("customers");
+        if (!FileService.isFileExists(filePath)) {
+            return "Customer file not found";
+        }
+        JSONArray customersArray = FileService.readJsonArrayFile(new File(filePath));
+        if (customersArray == null) {
+            return "Error reading the customer file";
+        }
+        boolean found = false;
+        Iterator<JSONObject> iterator = customersArray.iterator();
+        while (iterator.hasNext()) {
+            JSONObject customer = iterator.next();
+            if (customer.get("accountNumber").equals(accountNumber)) {
+                iterator.remove();
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            return "Customer not found";
+        }
+        FileService.writeJsonArrayFile(new File(filePath), customersArray);
+        return "Customer deleted successfully";
+    }
+
     @SuppressWarnings("unchecked")
     public String addAdmin(String username, String password) {
         String filePath = FileService.getUserJsonPath("admin");
-        JSONObject adminObject;
+        JSONObject newAdmin;
         if (!FileService.isFileExists(filePath)) {
-            adminObject = new JSONObject();
-            FileService.writeJsonObjectFile(new File(filePath), adminObject);
+            newAdmin = new JSONObject();
+            FileService.writeJsonObjectFile(new File(filePath), newAdmin);
         } else {
-            adminObject = FileService.readJsonObjectFile(new File(filePath));
-            if (adminObject == null) {
+            newAdmin = FileService.readJsonObjectFile(new File(filePath));
+            if (newAdmin == null) {
                 return "Error reading the file. in database " + filePath;
             }
         }
-        if (adminObject.containsKey("username")) {
-            if (adminObject.get("username").equals(username)) {
+        if (newAdmin.containsKey("username")) {
+            if (newAdmin.get("username").equals(username)) {
                 return "admin already exists";
             }
         }
-        adminObject.put("username", username);
-        adminObject.put("password", password);
-        FileService.writeJsonObjectFile(new File(filePath), adminObject);
+        newAdmin.put("username", username);
+        newAdmin.put("password", password); //hashing the password
+        FileService.writeJsonObjectFile(new File(filePath), newAdmin);
         return "admin added successfully";
     }
 }

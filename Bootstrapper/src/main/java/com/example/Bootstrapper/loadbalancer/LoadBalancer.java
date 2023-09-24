@@ -2,7 +2,7 @@ package com.example.Bootstrapper.loadbalancer;
 
 import com.example.Bootstrapper.File.FileServices;
 import com.example.Bootstrapper.model.Node;
-import com.example.Bootstrapper.services.NodesService;
+import com.example.Bootstrapper.services.network.NodesService;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,21 +17,23 @@ import java.util.Map;
 @Service
 public class LoadBalancer {
 
-    @Autowired
-    private NodesService nodesService;
+    private final NodesService nodesService;
 
     private final Map<Node, List<String>> nodeUsers;
     private int nextNodeIndex;
 
-    public LoadBalancer() {
+    @Autowired
+    public LoadBalancer(NodesService nodesService){
+        this.nodesService = nodesService;
         nodeUsers = new HashMap<>();
     }
 
-    public void loadAndBalanceExistingUsers() {
-        System.out.println("loading existing users..................");
-        File usersFile = new File(FileServices.getUserJsonPath("users"));
-        if (FileServices.isFileExists(usersFile.getPath())) {
-            JSONArray usersArray = FileServices.readJsonArrayFile(usersFile);
+    public void balanceExistingUsers() {
+        nextNodeIndex = 0;
+        System.out.println("balancing existing users..................");
+        File customersFile = new File(FileServices.getUserJsonPath("customers"));
+        if (FileServices.isFileExists(customersFile.getPath())) {
+            JSONArray usersArray = FileServices.readJsonArrayFile(customersFile);
             if (usersArray != null) {
                 for (Object obj : usersArray) {
                     JSONObject userJson = (JSONObject) obj;
@@ -61,9 +63,7 @@ public class LoadBalancer {
             throw new IllegalStateException("No nodes available for balancing");
         }
         Node nextNode = nodesService.getNodes().get(nextNodeIndex);
-        System.out.println(nextNodeIndex + " before updating");
         updateNextNodeIndex();
-        System.out.println(nextNodeIndex + " after updating");
         return nextNode;
     }
 

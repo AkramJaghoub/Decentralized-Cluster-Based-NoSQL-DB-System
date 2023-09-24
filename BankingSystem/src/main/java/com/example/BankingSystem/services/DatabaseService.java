@@ -20,7 +20,6 @@ public class DatabaseService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("username", admin.getUsername());
         headers.set("password", admin.getPassword());
-        headers.set("X-Broadcast", "false");
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         String url = "http://worker1:9000/api/createDB/" + db_name;
         try {
@@ -30,14 +29,12 @@ public class DatabaseService {
         }
     }
 
-    @SneakyThrows
     public ResponseEntity<String> deleteDatabase(String db_name, HttpSession session) {
         Admin admin = (Admin) session.getAttribute("login");
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set("username", admin.getUsername());
         headers.set("password", admin.getPassword());
-        headers.set("X-Broadcast", "false");
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         String url = "http://worker1:9000/api/deleteDB/" + db_name;
         try {
@@ -47,8 +44,6 @@ public class DatabaseService {
         }
     }
 
-
-    @SneakyThrows
     public List<String> fetchExistingDatabases(HttpSession session) {
         Admin admin = (Admin) session.getAttribute("login");
         RestTemplate restTemplate = new RestTemplate();

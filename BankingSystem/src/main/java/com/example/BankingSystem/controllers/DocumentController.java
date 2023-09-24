@@ -16,10 +16,15 @@ import java.util.List;
 @RequestMapping("/admin-dashboard/banking-system")
 public class DocumentController {
 
+
+    private final DocumentService documentService;
+    private final UserService userService;
+
     @Autowired
-    private DocumentService documentService;
-    @Autowired
-    private UserService userService;
+    public DocumentController(DocumentService documentService, UserService userService){
+        this.documentService = documentService;
+        this.userService = userService;
+    }
 
     @PostMapping("/createAccount")
     public ResponseEntity<?> createAccount(@RequestParam("db_name") String dbName,
@@ -35,8 +40,9 @@ public class DocumentController {
         String message = responseEntity.getBody();
         if (status == HttpStatus.CREATED) {
             List<BankAccount> accounts = documentService.readAccounts(dbName, collectionName, session);
+            //add the customer to the bootstrapper after creating their account
             userService.addCustomer(bankAccount.getAccountNumber(), bankAccount.getPassword(), session);
-            return new ResponseEntity<>(accounts, status);
+            return ResponseEntity.status(status).body(accounts);
         }else if (status == HttpStatus.CONFLICT) {
             return ResponseEntity.status(status).body(message);
         }else {
@@ -54,37 +60,37 @@ public class DocumentController {
         }
         List<BankAccount> accounts = documentService.readAccounts(dbName, collectionName, session);
         if (!accounts.isEmpty()) {
-            return ResponseEntity.ok(accounts);
+            return ResponseEntity.status(HttpStatus.OK).body(accounts);
         } else {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body("No accounts found.");
         }
     }
 
-    @PutMapping("/updateDocument")
-    public ResponseEntity<?> updateDocumentProperty(
-            @RequestParam("db_name") String dbName,
-            @RequestParam("collection_name") String collectionName,
-            @RequestParam("property_name") String propertyName,
-            @RequestParam("doc_id") String documentId,
-            @RequestHeader("newPropertyValue") Object newPropertyValue,
-            HttpSession session) {
-        Admin login = (Admin) session.getAttribute("login");
-        if (login == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header("Location", "/login-page").body("login-page");
-        }
-        ResponseEntity<String> responseEntity = documentService.
-                updateDocumentProperty(dbName, collectionName, documentId, propertyName, newPropertyValue, session);
-        HttpStatus status = (HttpStatus) responseEntity.getStatusCode();
-        String message = responseEntity.getBody();
-        if (status == HttpStatus.ACCEPTED){
-            List<BankAccount> accounts = documentService.readAccounts(dbName, collectionName, session);
-            return new ResponseEntity<>(accounts, status);
-        }else if(status == HttpStatus.NOT_FOUND) {
-            return ResponseEntity.status(status).body(message);
-        }else {
-            return ResponseEntity.status(status).body(message);
-        }
-    }
+//    @PutMapping("/updateDocument")
+//    public ResponseEntity<?> updateDocumentProperty(
+//            @RequestParam("db_name") String dbName,
+//            @RequestParam("collection_name") String collectionName,
+//            @RequestParam("property_name") String propertyName,
+//            @RequestParam("doc_id") String documentId,
+//            @RequestHeader("newPropertyValue") Object newPropertyValue,
+//            HttpSession session) {
+//        Admin login = (Admin) session.getAttribute("login");
+//        if (login == null) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header("Location", "/login-page").body("login-page");
+//        }
+//        ResponseEntity<String> responseEntity = documentService.
+//                updateDocumentProperty(dbName, collectionName, documentId, propertyName, newPropertyValue, session);
+//        HttpStatus status = (HttpStatus) responseEntity.getStatusCode();
+//        String message = responseEntity.getBody();
+//        if (status == HttpStatus.ACCEPTED){
+//            List<BankAccount> accounts = documentService.readAccounts(dbName, collectionName, session);
+//            return ResponseEntity.status(status).body(accounts);
+//        }else if(status == HttpStatus.NOT_FOUND) {
+//            return ResponseEntity.status(status).body(message);
+//        }else {
+//            return ResponseEntity.status(status).body(message);
+//        }
+//    }
 
     @DeleteMapping("/deleteAccount")
     public ResponseEntity<?> deleteAccount(@RequestParam("db_name") String dbName,
@@ -100,7 +106,9 @@ public class DocumentController {
         String message = responseEntity.getBody();
         if (status == HttpStatus.ACCEPTED){
             List<BankAccount> accounts = documentService.readAccounts(dbName, collectionName, session);
-            return new ResponseEntity<>(accounts, status);
+            String customerToDelete = message;
+            userService.deleteCustomer(customerToDelete, session); //delete customer from the bootstrapper and worker nodes
+            return ResponseEntity.status(status).body(accounts);
         }else if(status == HttpStatus.NOT_FOUND) {
             return ResponseEntity.status(status).body(message);
         }else {

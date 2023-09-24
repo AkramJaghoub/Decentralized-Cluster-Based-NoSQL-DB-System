@@ -3,8 +3,8 @@ package com.example.BankingSystem.controllers;
 import com.example.BankingSystem.Model.Customer;
 import com.example.BankingSystem.services.CustomerService;
 import jakarta.servlet.http.HttpSession;
-import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,10 +16,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 @RequestMapping("/customer-dashboard/banking-system")
 public class CustomerController {
+
+
+    private final HttpSession session;
+    private final CustomerService customerService;
+
     @Autowired
-    private HttpSession session;
-    @Autowired
-    CustomerService customerService;
+    public CustomerController (HttpSession session, CustomerService customerService){
+        this.session = session;
+        this.customerService = customerService;
+    }
 
     @GetMapping("/")
     public String getCustomerDashboard(Model model) {
@@ -38,31 +44,21 @@ public class CustomerController {
     public ResponseEntity<String> deposit(@RequestParam Double amount) {
         Customer customer = (Customer) session.getAttribute("login");
         if (customer == null) {
-            return ResponseEntity.badRequest().body("User not logged in.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User not logged in.");
         }
-        String response = customerService.depositAmount(amount, session);
-        if (response.startsWith("New balance: ")) {
-            return ResponseEntity.accepted().body(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
+        return customerService.depositAmount(amount, session);
     }
 
     @PostMapping("/withdraw")
     public ResponseEntity<String> withdraw(@RequestParam Double amount) {
         Customer customer = (Customer) session.getAttribute("login");
         if (customer == null) {
-            return ResponseEntity.badRequest().body("User not logged in.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User not logged in.");
         }
         Double currentBalance = customerService.getAccountBalance(session);
         if (amount > currentBalance) {
-            return ResponseEntity.badRequest().body("Please withdraw an amount less than your balance.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Please withdraw an amount less than your balance.");
         }
-        String response = customerService.withdrawAmount(amount, session);
-        if (response.startsWith("New balance: ")) {
-            return ResponseEntity.accepted().body(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
+        return customerService.withdrawAmount(amount, session);
     }
 }

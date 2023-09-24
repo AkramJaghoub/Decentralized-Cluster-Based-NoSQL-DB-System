@@ -1,10 +1,5 @@
 package com.example.Database.index.BPlusTree;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 class InternalNode<T extends Comparable<T>> extends Node<T>{
     protected final static int NODE_CAPACITY = 4;
     protected Object[] childrenPointers;
@@ -26,13 +21,8 @@ class InternalNode<T extends Comparable<T>> extends Node<T>{
     }
 
     @Override
-    public NodeType getNodeType() {
-        return NodeType.InnerNode;
-    }
-
-    @Override
     public int search(T key) {
-        int index = 0;
+        int index;
         for (index = 0; index < this.getNumberOfKeys(); ++index) {
             int cmp = this.getKeyAt(index).compareTo(key);
             if (cmp == 0) {
@@ -65,13 +55,13 @@ class InternalNode<T extends Comparable<T>> extends Node<T>{
     }
 
     /**
-     * When splits a internal node, the middle key is kicked out and be pushed to parent node.
+     * When splits an internal node, the middle key is kicked out and be pushed to parent node.
      */
     @Override
     protected Node<T> split() {
         int midIndex = this.getNumberOfKeys() / 2;
 
-        InternalNode<T> newRNode = new InternalNode<T>();
+        InternalNode<T> newRNode = new InternalNode<>();
         for (int i = midIndex + 1; i < this.getNumberOfKeys(); ++i) {
             newRNode.setKey(i - midIndex - 1, this.getKeyAt(i));
             this.setKey(i, null);
@@ -108,7 +98,7 @@ class InternalNode<T extends Comparable<T>> extends Node<T>{
     /* The codes below are used to support delete operation */
 
     private void deleteAt(int index) {
-        int i = 0;
+        int i;
         for (i = index; i < this.getNumberOfKeys() - 1; ++i) {
             this.setKey(i, this.getKeyAt(i + 1));
             this.setChild(i + 1, this.getChild(i + 2));
@@ -149,7 +139,7 @@ class InternalNode<T extends Comparable<T>> extends Node<T>{
         // remove the sink key, keep the left child and abandon the right child
         this.deleteAt(index);
 
-        // check whether need to propagate borrow or fusion to parent
+        // check whether you need to propagate borrow or fusion to parent
         if (this.isUnderflow()) {
             if (this.getParentNode() == null) {
                 // current node is root, only remove keys or delete the whole root node

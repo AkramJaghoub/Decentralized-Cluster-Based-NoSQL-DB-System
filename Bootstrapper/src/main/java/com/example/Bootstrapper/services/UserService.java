@@ -6,22 +6,27 @@ import com.example.Bootstrapper.model.Customer;
 import com.example.Bootstrapper.model.Node;
 import com.example.Bootstrapper.loadbalancer.LoadBalancer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Optional;
 
 @Service
 public class UserService {
 
+    private final LoadBalancer loadBalancer;
+
     @Autowired
-    private LoadBalancer loadBalancer;
+    public UserService(LoadBalancer loadBalancer){
+        this.loadBalancer = loadBalancer;
+    }
 
     public void addCustomer(Customer customer) {
-        Node node = loadBalancer.assignUserToNextNode(customer.getAccountNumber());
-        FileServices.saveUserToJson("customers", customer.toJson()); //first adding the customer to json file
+        Node node = loadBalancer.assignUserToNextNode(customer.getAccountNumber()); //assign the user to a worker node
+        String hashedPassword = PasswordHashing.hashPassword(customer.getPassword()); //hashing the password for security
+        customer.setPassword(hashedPassword);
+        FileServices.saveUserToJson("customers", customer.toJson()); //adding the customer to json file
         String url = "http://" + node.getNodeIP() + ":9000/api/add/customer";
         HttpHeaders headers = new HttpHeaders();
         headers.set("accountNumber", customer.getAccountNumber());
@@ -31,26 +36,66 @@ public class UserService {
         HttpEntity<String> requestEntity = new HttpEntity<>(headers);
         RestTemplate restTemplate = new RestTemplate();
         System.out.println("sending customer with account number " + customer.getAccountNumber());
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class); //adding the users into the database worker nodes
+        //adding the users into the database worker nodes
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
         System.out.println("Response from database: " + response.getBody());
     }
 
+    public void deleteCustomer(String accountNumber) {
+        FileServices.deleteUserFromJson("customers", accountNumber); //delete user from bootstrapper's side
+        loadBalancer.balanceExistingUsers();
+        String url = "http://" + loadBalancer.getUserNode(accountNumber).getNodeIP() + ":9000/api/delete/customer";
+        System.out.println(url);
+        Optional<Admin> adminCredentialsOpt = FileServices.getAdminCredentials();
+        Admin adminCredentials = adminCredentialsOpt.get();
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("accountNumber", accountNumber);
+        headers.set("adminUsername", adminCredentials.getUsername());
+        headers.set("adminPassword", adminCredentials.getPassword());
+        HttpEntity<String> requestEntity = new HttpEntity<>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+        //delete from database side too
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, requestEntity, String.class);
+        System.out.println("Response from Database: " + response.getBody());
+    }
+
     public void addAdmin(Admin admin) {
+        System.out.println(admin.getPassword());
+        String hashedPassword = PasswordHashing.hashPassword(admin.getPassword()); //adding the admin to json file
+        System.out.println(PasswordHashing.hashPassword(admin.getPassword()));
+        System.out.println(hashedPassword + " hashed password in bootstrapper");
+        admin.setPassword(hashedPassword);
         FileServices.saveAdminToJson(admin.toJson());
         for(int i = 1; i <= 4; i++) {
             Node node = loadBalancer.assignUserToNextNode(admin.getUsername());
             String url = "http://" + node.getNodeIP() + ":9000/api/add/admin";
-            System.out.println(url);
             HttpHeaders headers = new HttpHeaders();
-            System.out.println(admin.getUsername());
-            System.out.println(admin.getPassword());
             headers.set("username", admin.getUsername());
             headers.set("password", admin.getPassword());
             HttpEntity<String> requestEntity = new HttpEntity<>(headers);
             RestTemplate restTemplate = new RestTemplate();
-            System.out.println("sending user with username " + admin.getUsername());
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class); //adding the admin into the database worker nodes
-            System.out.println("Response from database: " + response.getBody());
+            boolean success = false;
+            while (!success) {
+                try {
+                    ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+                    if (response.getStatusCode() == HttpStatus.OK) {
+                        success = true;
+                        System.out.println("Admin added successfully to node " + node.getNodeNumber());
+                    } else {
+                        System.err.println("Failed to add admin to node " + node.getNodeNumber() + ". Response: " + response.getBody());
+                    }
+                } catch (Exception e) {
+                    System.err.println("Exception occurred while adding admin to node " + node.getNodeNumber());
+                    e.printStackTrace();
+                }
+                if (!success) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
         }
     }
 }

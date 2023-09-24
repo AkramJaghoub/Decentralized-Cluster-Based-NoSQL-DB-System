@@ -4,13 +4,10 @@ import com.example.Database.file.FileService;
 import com.example.Database.model.ApiResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.FileReader;
 
 @Service
 public class AuthenticationService {
@@ -23,9 +20,10 @@ public class AuthenticationService {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             JsonNode rootNode = objectMapper.readTree(new File(path));
-            String fileUsername = rootNode.path("username").asText();
-            String filePassword = rootNode.path("password").asText();
-            return fileUsername.equals(username) && filePassword.equals(password);
+            String storedUsername = rootNode.path("username").asText();
+            String storedPassword = rootNode.path("password").asText();
+            String hashedPassword = PasswordHashing.isAlreadyHashed(password) ? password : PasswordHashing.hashPassword(password);
+            return storedUsername.equals(username) && storedPassword.equals(hashedPassword);
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -44,27 +42,39 @@ public class AuthenticationService {
         ObjectMapper objectMapper = new ObjectMapper();
         String path = FileService.getUserJsonPath(userType);
         String identityField = userType.equals("admin") ? "username" : "accountNumber";
+        String hashedPassword = PasswordHashing.hashPassword(password); //To compare against stored hash password
 
         try {
+            // admin
             if (userType.equals("admin")) {
                 JsonNode rootNode = objectMapper.readTree(new File(path));
                 String storedIdentity = rootNode.path(identityField).asText();
                 String storedPassword = rootNode.path("password").asText();
-                if (identity.equals(storedIdentity) && password.equals(storedPassword)) {
+                if (identity.equals(storedIdentity) && hashedPassword.equals(storedPassword)) {
                     return new ApiResponse("Authenticated", HttpStatus.OK);
+                } else {
+                    return new ApiResponse("Wrong Username or Password", HttpStatus.BAD_REQUEST);
                 }
-                return new ApiResponse("Wrong Username or Password", HttpStatus.BAD_REQUEST);
-
-            } else {
+            }
+            // customer
+            else {
+                boolean customerExists = false;
                 JsonNode[] rootNodes = objectMapper.readValue(new File(path), JsonNode[].class);
                 for (JsonNode rootNode : rootNodes) {
                     String storedIdentity = rootNode.path(identityField).asText();
                     String storedPassword = rootNode.path("password").asText();
-                    if (identity.equals(storedIdentity) && password.equals(storedPassword)) {
+                    if (identity.equals(storedIdentity) && hashedPassword.equals(storedPassword)) {
                         return new ApiResponse("Authenticated", HttpStatus.OK);
                     }
+                    if (identity.equals(storedIdentity) || hashedPassword.equals(storedPassword)) {
+                        customerExists = true;
+                    }
                 }
-                return new ApiResponse("Wrong Account Number or Password", HttpStatus.BAD_REQUEST);
+                if (customerExists) {
+                    return new ApiResponse("Wrong Account Number or Password", HttpStatus.BAD_REQUEST);
+                } else {
+                    return new ApiResponse("Customer does not exist, \nplease contact your bank or try again.", HttpStatus.BAD_REQUEST);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();

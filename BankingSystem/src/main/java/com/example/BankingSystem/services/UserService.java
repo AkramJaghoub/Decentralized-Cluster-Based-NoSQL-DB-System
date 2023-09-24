@@ -52,4 +52,18 @@ public class UserService {
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
         System.out.println("Response from bootstrapper: " + response.getBody());
     }
+
+    public void deleteCustomer(String accountNumber, HttpSession session) {
+        Admin admin = (Admin) session.getAttribute("login");
+        String url = "http://host.docker.internal:8081/bootstrapper/delete/customer";
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("accountNumber", accountNumber);
+        headers.set("adminUsername", admin.getUsername());
+        headers.set("adminPassword", admin.getPassword());
+        HttpEntity<String> requestEntity = new HttpEntity<>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+        System.out.println("sending customer with account number " + accountNumber + " to be deleted from a node");
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, requestEntity, String.class);
+        System.out.println("Response from bootstrapper: " + response.getBody());
+    }
 }

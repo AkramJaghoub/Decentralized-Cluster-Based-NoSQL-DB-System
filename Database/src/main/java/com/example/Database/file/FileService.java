@@ -11,7 +11,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import java.io.*;
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
@@ -31,12 +30,11 @@ public final class FileService {
     public static JSONObject readSchema(String collectionName) {
         try {
             File schemaFile = getSchemaPath(collectionName);
-            System.out.println(schemaFile);
             String schemaString = Files.readString(Paths.get(schemaFile.getAbsolutePath()));
             JSONParser parser = new JSONParser();
             return (JSONObject) parser.parse(schemaString);
         } catch (IOException | ParseException e) {
-            System.out.println(e.getMessage());
+            e.printStackTrace();
         }
         return new JSONObject();
     }
@@ -53,13 +51,9 @@ public final class FileService {
     }
 
 
-    public static synchronized void saveAccountDirectory(Map<String, AccountReference> accountDirectory) {
-        System.out.println(accountDirectory.entrySet() + " is being added into the directoryyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
-        System.out.println(FileService.getRootFile());
+    public static void saveAccountDirectory(Map<String, AccountReference> accountDirectory) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(FileService.getRootFile() + "/accountDirectory.json"))) {
             for (Map.Entry<String, AccountReference> entry : accountDirectory.entrySet()) {
-                System.out.println(entry.getKey() + "," + entry.getValue().getDatabaseName() + "," +
-                        entry.getValue().getCollectionName() + "," + entry.getValue().getDocumentId());
                 writer.write(entry.getKey() + "," + entry.getValue().getDatabaseName() + "," +
                         entry.getValue().getCollectionName() + "," + entry.getValue().getDocumentId());
                 writer.newLine();
@@ -69,9 +63,10 @@ public final class FileService {
         }
     }
 
+
     public static Map<String, AccountReference> loadAccountDirectory() {
         Map<String, AccountReference> directory = new ConcurrentHashMap<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(FileService.getRootFile()))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(FileService.getRootFile() + "/accountDirectory.json"))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
@@ -170,7 +165,6 @@ public final class FileService {
     public static List<String> getAllKnownDatabases() {
         List<String> databases = new ArrayList<>();
         File databaseRoot = new File(getRootFile().toURI());
-        System.out.println("Root directory: " + databaseRoot.getAbsolutePath());
         File[] dbDirectories = databaseRoot.listFiles(File::isDirectory);
         System.out.println(Arrays.toString(dbDirectories) + " database directories");
         if (dbDirectories != null) {
@@ -241,7 +235,7 @@ public final class FileService {
         }
     }
 
-    public synchronized static void appendToIndexFile(String path, Object key, String value) {
+    public static void appendToIndexFile(String path, Object key, String value) {
         try {
             Path filePath = Paths.get(path);
             if (!Files.exists(filePath.getParent())) {
@@ -256,12 +250,7 @@ public final class FileService {
                 String line = lines.get(i);
                 String[] parts = line.split(",");
                 if (parts[0].equals(key.toString())) {
-                    String[] docIds = parts[1].split(";");
-                    List<String> docIdsList = new ArrayList<>(Arrays.asList(docIds));
-                    if (!docIdsList.contains(value)) {
-                        docIdsList.add(value);
-                    }
-                    lines.set(i, parts[0] + "," + String.join(";", docIdsList));
+                    lines.set(i, key + "," + value);
                     keyExists = true;
                     break;
                 }
@@ -293,7 +282,7 @@ public final class FileService {
         }
     }
 
-    public synchronized static void rewriteIndexFile(String collectionName, Index index) {
+    public static void rewriteIndexFile(String collectionName, Index index) {
         File file = new File(getIndexFilePath(collectionName));
         List<Map.Entry<String, String>> allEntries = index.getBPlusTree().getAllEntries();
         if (allEntries.isEmpty()) {
@@ -314,7 +303,7 @@ public final class FileService {
         }
     }
 
-    public synchronized static void rewritePropertyIndexFile(String path, PropertyIndex propertyIndex) {
+    public static void rewritePropertyIndexFile(String path, PropertyIndex propertyIndex) {
         try {
         File file = new File(path);
         List<Map.Entry<String, String>> allEntries = propertyIndex.getBPlusTree().getAllEntries();
@@ -349,7 +338,6 @@ public final class FileService {
             if (!node.has("_id")) {  // Check if the _id field already exists
                 System.out.println("generating a new id..................");
                 UUID uuid = UUID.randomUUID();      // Generate a new id if it doesn't exist
-                System.out.println(uuid + " idddddddddddddddddddddddddddddd");
                 ((ObjectNode) node).put("_id", uuid.toString());
             }
             Map<String, Object> resultMap = mapper.convertValue(node, Map.class);

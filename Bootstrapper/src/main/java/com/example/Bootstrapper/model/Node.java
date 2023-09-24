@@ -11,12 +11,4 @@ public class Node {
     private JSONObject nodeJsonObject;
     private String nodeIP;
     private boolean isActive;
-
-    @SuppressWarnings("unchecked")
-    public JSONObject toJson() {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("nodeIP", nodeIP);
-        jsonObject.put("nodeNumber", nodeNumber);
-        return jsonObject;
-    }
 }

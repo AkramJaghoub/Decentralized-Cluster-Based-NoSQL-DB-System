@@ -10,8 +10,7 @@
 
     <style>
         .icon-btn,
-        .add-btn,
-        .collection-icons {
+        .add-btn {
             background-color: transparent;
             color: gray;
             border: none;
@@ -20,16 +19,14 @@
         }
 
         .icon-btn:hover,
-        .add-btn:hover,
-        .collection-icons:hover {
+        .add-btn:hover{
             background-color: lightgray;
             border-radius: 50%;
             color: black;
         }
 
         .icon-btn:focus,
-        .add-btn:focus,
-        .collection-icons:focus {
+        .add-btn:focus{
             color: black;
             outline: none;
         }
@@ -58,13 +55,13 @@
 
         .collection-container {
             display: flex;
-            flex-direction: column; /* Use flex to fit the border to content */
-            margin-left: 40px; /* Add margin to indent collections */
+            flex-direction: column;
+            margin-left: 40px;
         }
 
         .collection-container.newly-added {
-            background-color: #f0f8ff; /* Change this to your desired background color */
-            transition: background-color 1s ease-in-out; /* Adjust transition properties as needed */
+            background-color: #f0f8ff;
+            transition: background-color 1s ease-in-out;
         }
 
         .collection-item {
@@ -74,7 +71,7 @@
         }
 
         .collection-item span {
-            flex-grow: 1; /* Allow the text to expand and fill space */
+            flex-grow: 1;
         }
 
         .container {
@@ -84,10 +81,10 @@
             padding: 10px;
         }
 
-        /* Increase the size of icons for adding and deleting databases */
+
         .add-btn,
         .delete-btn {
-            font-size: 20px; /* You can adjust the size as needed */
+            font-size: 20px;
             border-radius: 50%;
         }
 
@@ -97,8 +94,8 @@
         }
 
         .newly-added {
-            background-color: #7FFF7F; /* Green background color for highlighting */
-            transition: background-color 3s; /* Transition duration set to 3 seconds */
+            background-color: #7FFF7F;
+            transition: background-color 3s;
         }
 
         #document-display {
@@ -110,7 +107,7 @@
             font-size: 20px;
         }
 
-        /* CSS for collection item highlighting */
+
         .collection-item {
             cursor: pointer;
             transition: background-color 0.3s;
@@ -118,21 +115,21 @@
 
 
         .collection-item:hover {
-            background-color: #f0f0f0; /* Change to your desired highlight color */
+            background-color: #f0f0f0;
         }
 
-        /* Style for the content in the editor */
+
         .document-container {
-            display: flex; /* Use flex to make the container expand to fit its content */
-            flex-direction: column; /* Stack child elements vertically */
-            align-items: stretch; /* Stretch child elements horizontally */
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
         }
 
 
         #document-display pre {
             white-space: pre-wrap;
-            padding-left: 25px; /* Add left padding */
-            position: relative; /* Add relative positioning */
+            padding-left: 25px;
+            position: relative;
         }
 
         #document-display pre {
@@ -141,22 +138,22 @@
         }
 
         #document-display pre div {
-            background-color: #f0f0f0; /* Change to your desired highlight color */
-            padding: 0px; /* Add padding for spacing */
-            margin-bottom: 5px; /* Add margin between lines */
+            background-color: #f0f0f0;
+            padding: 0;
+            margin-bottom: 5px;
         }
 
         #document-display pre div:hover {
-            background-color: #ddd; /* Change the hover background color */
+            background-color: #ddd;
         }
 
         #document-display pre strong {
-            color: black; /* Set property names to black */
-            font-weight: bold; /* Make property names bold */
+            color: black;
+            font-weight: bold;
         }
 
         #document-display pre span.property-value {
-            color: cornflowerblue; /* Set values to baby blue */
+            color: cornflowerblue;
         }
 
         #document-display {
@@ -208,14 +205,12 @@
                         <button class="add-btn create-col-btn">+</button>
                     </div>
                     <div class="collection-container">
-                        <!-- Add collection items here -->
                         <div class="collection-item">
                             <div>
                                 <button class="icon-btn delete-collection-btn"><i class="fas fa-trash-alt fa-xs"></i></button>
                                 <button class="icon-btn add-document-btn">+</button>
                             </div>
                         </div>
-                        <!-- Add more collection items as needed -->
                     </div>
                 </div>
             </div>
@@ -236,7 +231,7 @@
     </div>
 </div>
 
-<!-- Database Modal (outside of the loop) -->
+
 <div id="createDbModal" class="modal fade" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -259,7 +254,7 @@
 </div>
 
 
-<!-- Collection Modal -->
+
 <div id="createCollectionModal" class="modal fade" tabindex="-1">
     <div class="modal-dialog">
 
@@ -290,7 +285,6 @@
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- Account opening form -->
                 <form id="openAccountForm">
 
                     <input type="hidden" id="db_name_input" name="db_name">
@@ -789,13 +783,19 @@
 
         $(document).on('click', '#deleteDocumentBtn', function () {
             const currentDocument = documents[currentDocumentIndex];
-            console.log(currentDocument)
+            const currentAccountNumber = currentDocument && currentDocument.accountNumber ? currentDocument.accountNumber : null;
             const currentDocumentId = currentDocument && currentDocument._id ? currentDocument._id : null;
             if (!currentDocumentId) {
                 console.error('Error: The current document does not have a valid _id property.');
                 return;
             }
-            deleteDocument(currentDocumentId);
+            const isUserSure = confirm(`Are you sure you want to delete the document with account number ${currentAccountNumber}?`);
+            if (isUserSure) {
+                deleteDocument(currentDocumentId);
+            } else {
+                // If user clicked 'Cancel', do nothing
+                console.log('User cancelled the deletion.');
+            }
         });
 
         function deleteDocument(documentId) {
