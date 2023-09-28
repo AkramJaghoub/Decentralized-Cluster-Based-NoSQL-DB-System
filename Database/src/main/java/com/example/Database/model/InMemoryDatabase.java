@@ -1,5 +1,7 @@
 package com.example.Database.model;
 
+import com.example.Database.index.IndexManager;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,5 +48,6 @@ public class InMemoryDatabase {
             throw new IllegalArgumentException("Database name cannot be null or empty.");
         }
         databases.remove(databaseName);
+        IndexManager.getInstance().deleteAllIndexes(); //clear all the indexes if
     }
 }

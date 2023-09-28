@@ -181,6 +181,24 @@
             background-color: #d3d3d3;
         }
 
+        #document-display:empty {
+            border: none;
+        }
+
+        .custom-alert {
+            background-color: transparent;
+            border: none;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
     </style>
 </head>
 <body>
@@ -217,6 +235,9 @@
         </div>
         <div class="col-md-9 p-5 bg-light">
             <div id="choose-collection-message" class="alert alert-info d-none">Choose a collection to display its documents.</div>
+            <div id="no-databases-message" class="custom-alert d-none">
+                No databases exist yet. Add a new one to see what happens.
+            </div>
             <div class="document-container">
                 <div class="text-right">
                     <span id="documentCount" class="mr-2"></span>
@@ -367,9 +388,8 @@
             $('#documentMessage').text('');
         }
 
-        // Function to hide the "No documents exist yet" message
         function hideNoDocumentsMessage() {
-            $('#document-display').empty();
+            $('#document-display').empty().hide();
         }
 
         async function displayDatabases() {
@@ -377,11 +397,12 @@
                 const databaseNames = await $.get('/admin-dashboard/banking-system/fetchExistingDatabases');
                 $('#databases').empty();
                 if (!Array.isArray(databaseNames) || databaseNames.length === 0) {
-                    showNoDocumentsMessage(); // Show the message when no databases exist
+                    $('#no-databases-message').removeClass('d-none');
                     return;
+                } else {
+                    $('#no-databases-message').addClass('d-none');
                 }
-                let anyCollectionSelected = false; // Flag to track if any collection is selected
-
+                let anyCollectionSelected = false;
                 for (const dbName of databaseNames) {
                     const databaseElement = $(`
                 <div class="mb-3 database-section">
@@ -398,29 +419,36 @@
                     if (collections.length === 0) {
                         databaseElement.find('.expand-btn').prop('disabled', true);
                     }
-
-                    // Check if the current collection is selected
                     if (collections.includes(selectedCollectionName)) {
                         anyCollectionSelected = true;
                     }
                 }
+                console.log("Selected Database: ", selectedDbName);
+                console.log("Selected Collection: ", selectedCollectionName);
+
+                if (selectedDbName && selectedCollectionName) {
+                    console.log("Fetching documents for:", selectedDbName, selectedCollectionName);
+                    await fetchDocuments(selectedDbName, selectedCollectionName);
+                }
 
                 if (!selectedCollectionName && anyCollectionSelected) {
-                    showChooseCollectionMessage(); // Show the "Choose a collection" message
+                    showChooseCollectionMessage();
                 } else {
                     hideChooseCollectionMessage();
                 }
                 if (anyCollectionSelected) {
-                    hideNoDocumentsMessage(); // Hide the message when collections exist
+                    hideNoDocumentsMessage();
                 } else {
-                    showNoDocumentsMessage(); // Show the "No databases" message
+                    showNoDocumentsMessage();
                 }
             } catch (error) {
                 console.error('An error occurred:', error);
             }
         }
 
-        let collectionItemClickEnabled = true; // Flag to control collection item click
+        let shouldDisplayDocuments = false;
+
+        let collectionItemClickEnabled = true;
         $(document).on('click', '.collection-item', function () {
             if (!collectionItemClickEnabled) {
                 return;
@@ -431,7 +459,12 @@
             $(this).toggleClass('selected');
             localStorage.setItem('selectedDbName', dbName);
             localStorage.setItem('selectedCollectionName', collectionName);
-            fetchDocuments(dbName, collectionName); // Fetch documents when clicking on a collection
+            hideChooseCollectionMessage();
+            shouldDisplayDocuments = true;
+            fetchDocuments(dbName, collectionName)
+                .catch(function (error) {
+                    console.error('Error fetching documents:', error);
+                });
         });
 
 
@@ -545,10 +578,22 @@
             })
                 .done(function (response) {
                     if (Array.isArray(response)) {
-                        displayDatabases(response);
+                        displayDatabases();
                         let successMsg = $(`<div class="alert alert-success mt-3">Database ${dbName} has been deleted.</div>`);
                         $('.container').prepend(successMsg);
                         setTimeout(() => successMsg.fadeOut(), 3000);
+                        $('#document-display').empty().hide();
+                        $('#documentCount').text('');
+                        $('#prevDocumentBtn').hide();
+                        $('#nextDocumentBtn').hide();
+                        $('#documentMessage').text('');
+                        documents = [];
+                        currentDocumentIndex = 0;
+                        selectedDbName = '';
+                        selectedCollectionName = '';
+                        localStorage.setItem('selectedDbName', '');
+                        localStorage.setItem('selectedCollectionName', '');
+                        hideChooseCollectionMessage();
                     } else {
                         alert(response);
                     }
@@ -638,7 +683,7 @@
         $(document).on('click', '.delete-collection-btn', function () {
             const collectionItem = $(this).closest('.collection-item');
             const collectionName = collectionItem.find('span').text();
-            const dbName = collectionItem.closest('.database-section').find('.database-name').text(); // Define dbName here
+            const dbName = collectionItem.closest('.database-section').find('.database-name').text();
             const userConfirmation = confirm(`Are you sure you want to delete the collection "${collectionName}"?`);
             if (!userConfirmation) {
                 return;
@@ -654,14 +699,23 @@
             })
                 .done(function (response) {
                     if (Array.isArray(response)) {
+                        hideNoDocumentsMessage();
                         collectionItem.fadeOut(300, function () {
                             $(this).remove();
+                            const remainingCollections = $(this).closest('.database-section').find('.collection-item');
+                            if (remainingCollections.length === 0) {
+                                hideNoDocumentsMessage();
+                                showChooseCollectionMessage();
+                            }
                         });
                         let successMsg = $(`<div class="alert alert-success mt-3">Collection ${collectionName} has been deleted in ${dbName} database</div>`);
                         $('.container').prepend(successMsg);
                         setTimeout(() => successMsg.fadeOut(), 3000);
                         selectedCollectionName = '';
                         localStorage.setItem('selectedCollectionName', '');
+                        documents = [];
+                        currentDocumentIndex = 0;
+                        displayCurrentDocument();
                     } else {
                         alert(response);
                     }
@@ -743,6 +797,8 @@
             const prevBtn = $('#prevDocumentBtn');
             const nextBtn = $('#nextDocumentBtn');
             const documentMessage = $('#documentMessage');
+
+            // Check if documents exist
             if (documents.length === 0 || currentDocumentIndex < 0 || currentDocumentIndex >= documents.length) {
                 documentDisplay.html('<p>No documents exist yet. Add a new one to see what happens.</p>');
                 documentCount.text('');
@@ -751,6 +807,7 @@
                 documentMessage.text('');
                 return;
             }
+
             const currentDocument = documents[currentDocumentIndex];
             currentDocument.hasInsurance = currentDocument.hasInsurance ? "Yes" : "No";
             const formattedProperties = [];
@@ -845,18 +902,26 @@
                 });
         }
 
-
-        function fetchDocuments(dbName, collectionName) {
-            $.get(`/admin-dashboard/banking-system/readAccounts?db_name=${dbName}&collection_name=${collectionName}`, function (data) {
-                if (Array.isArray(data)) {
-                    documents = data.sort((a, b) => a.accountNumber - b.accountNumber);
-                } else {
-                    documents = [];
-                }
-                currentDocumentIndex = 0;
-                displayCurrentDocument();
-                $('#document-display').css('display', 'block');
-            });
+        async function fetchDocuments(dbName, collectionName) {
+            return $.get(`/admin-dashboard/banking-system/readAccounts?db_name=${dbName}&collection_name=${collectionName}`)
+                .then(function (data) {
+                    console.log('Documents fetched:', data);
+                    if (Array.isArray(data)) {
+                        documents = data.sort((a, b) => a.accountNumber - b.accountNumber);
+                    } else {
+                        documents = [];
+                    }
+                    currentDocumentIndex = 0;
+                    if (shouldDisplayDocuments) {
+                        displayCurrentDocument();
+                        $('#document-display').css('display', 'block');
+                    }
+                    return documents;
+                })
+                .fail(function (error) {
+                    console.error('Failed to fetch documents:', error);
+                    throw error;
+                });
         }
 
         $('#prevDocumentBtn').click(function () {

@@ -34,7 +34,7 @@ public class RedirectionService {
             String url = "http://worker" + workerPort + ":9000/api/" + database.getDatabaseName()
                     + "/" + collection.getCollectionName() + "/createDoc";
             System.out.println("Constructed redirect URL: " + url);
-            HttpEntity<String> requestEntity = new HttpEntity<>(document.getData().toJSONString(), headers);
+            HttpEntity<String> requestEntity = new HttpEntity<>(document.getContent().toString(), headers);
             ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
             return new ApiResponse(responseEntity.getBody(), (HttpStatus) responseEntity.getStatusCode());
         } catch (HttpClientErrorException | HttpServerErrorException e) {

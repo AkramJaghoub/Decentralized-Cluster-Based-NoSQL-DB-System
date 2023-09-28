@@ -7,10 +7,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.stereotype.Service;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,7 +26,7 @@ public final class FileServices {
         JSONArray jsonArray = new JSONArray();
         System.out.println(isFileExists(documentPath));
         if (isFileExists(documentPath)) {
-            try (FileReader reader = new FileReader(documentPath)) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(documentPath))) {
                 JSONParser parser = new JSONParser();
                 jsonArray = (JSONArray) parser.parse(reader);
             } catch (IOException | ParseException e) {
@@ -38,20 +36,24 @@ public final class FileServices {
             }
         }
         jsonArray.add(document);
-        File parentDir = new File(documentPath).getParentFile();
-        if (!parentDir.exists()) {
-            parentDir.mkdirs();
+        try {
+            Files.createDirectories(Path.of(documentPath).getParent());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Error creating directories: " + e.getMessage());
         }
-       writeJsonArrayFile(new File(documentPath), jsonArray);
+       FileServices.writeJsonArrayFile(new File(documentPath), jsonArray);
     }
 
     public static void saveAdminToJson(JSONObject document) {
         String documentPath = usersDirectoryPath + "/admin.json";
-        File parentDir = new File(documentPath).getParentFile();
-        if (!parentDir.exists()) {
-            parentDir.mkdirs();
+        try {
+            Files.createDirectories(Path.of(documentPath).getParent());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Error creating directories: " + e.getMessage());
         }
-        writeJsonObjectFile(new File(documentPath), document);
+        FileServices.writeJsonObjectFile(new File(documentPath), document);
     }
 
     @SuppressWarnings("unchecked")
@@ -69,7 +71,7 @@ public final class FileServices {
                 updatedArray.add(jsonObject);
             }
         }
-        writeJsonArrayFile(new File(documentPath), updatedArray);
+        FileServices.writeJsonArrayFile(new File(documentPath), updatedArray);
     }
 
     public static Optional<Admin> getAdminCredentials() {
@@ -89,9 +91,9 @@ public final class FileServices {
     }
 
     public static void writeJsonObjectFile(File file, JSONObject jsonObject) {
-        try (FileWriter fileWriter = new FileWriter(file)) {
-            fileWriter.write(jsonObject.toJSONString());
-            fileWriter.flush();
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write(jsonObject.toJSONString());
+            writer.flush();
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Error writing to the file: " + e.getMessage());
@@ -106,7 +108,7 @@ public final class FileServices {
 
     public static JSONArray readJsonArrayFile(File file) {
         JSONParser parser = new JSONParser();
-        try (FileReader reader = new FileReader(file)) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             if (file.length() == 0) {
                 return new JSONArray();
             }
@@ -120,8 +122,8 @@ public final class FileServices {
     }
 
     public static void writeJsonArrayFile(File file, JSONArray jsonArray) {
-        try (FileWriter fileWriter = new FileWriter(file)) {
-            fileWriter.write(jsonArray.toJSONString());
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write(jsonArray.toJSONString());
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("Error while writing JSON file: " + e.getMessage());

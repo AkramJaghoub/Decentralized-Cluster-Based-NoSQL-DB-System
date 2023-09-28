@@ -97,6 +97,7 @@ public class DocumentController {
     public ResponseEntity<String> searchForProperty(@PathVariable String propertyName,
                                                     @RequestHeader("accountNumber") String accountNumber) {
         AccountReference accountReference = accountDirectoryService.getAccountLocation(accountNumber);
+        System.out.println(accountReference + " sssssssssssssssssssssdqdwqdwqdqwdasdaxdavvvvvvvvvvxxxxxxxxxx");
         String dbName = accountReference.getDatabaseName();
         String collectionName = accountReference.getCollectionName();
         String documentId = accountReference.getDocumentId();

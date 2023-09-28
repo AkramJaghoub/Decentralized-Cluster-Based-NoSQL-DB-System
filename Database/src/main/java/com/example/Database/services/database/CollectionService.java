@@ -16,7 +16,9 @@ public class CollectionService {
     public ApiResponse createCollection(Database database, String collectionName, JSONObject jsonSchema) {
         database.getCollectionLock().lock();
         try {
+            //soft addition
             database.createCollection(collectionName);
+            //hard addition
             return DatabaseFileOperations.createCollection(collectionName, jsonSchema);
         } finally {
             database.getCollectionLock().unlock();
@@ -26,7 +28,9 @@ public class CollectionService {
     public ApiResponse deleteCollection(Database database, String collectionName) {
         database.getCollectionLock().lock();
         try {
+            //soft delete
             database.deleteCollection(collectionName);
+            //hard delete
             return DatabaseFileOperations.deleteCollection(collectionName);
         } finally {
             database.getCollectionLock().unlock();

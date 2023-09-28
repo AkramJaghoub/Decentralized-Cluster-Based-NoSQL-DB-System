@@ -34,12 +34,12 @@ public class UpdateDocumentCommand implements QueryCommand {
 
     @Autowired
     public UpdateDocumentCommand(DocumentService documentService, AffinityManager affinityManager, BroadcastService broadcastService,
-                                 RedirectionService redirectionService, IndexManager indexManager){
+                                 RedirectionService redirectionService){
         this.documentService = documentService;
         this.affinityManager = affinityManager;
         this.broadcastService = broadcastService;
         this.redirectionService = redirectionService;
-        this.indexManager = indexManager;
+        this.indexManager = IndexManager.getInstance();
     }
 
     @Override
@@ -56,7 +56,7 @@ public class UpdateDocumentCommand implements QueryCommand {
             String documentId = CommandUtils.getDocumentId(query);
             String propertyName = CommandUtils.getPropertyName(query);
             Object newPropertyValue = CommandUtils.getNewPropertyValue(query);
-            Document existingDocument = DatabaseFileOperations.fetchDocumentFromDatabase(documentId, collection.getCollectionName(), indexManager);
+            Document existingDocument = DatabaseFileOperations.fetchDocumentFromDatabase(documentId, collection.getCollectionName());
             Document documentToUpdate = new Document(documentId);
             documentToUpdate.setVersion(existingDocument.getVersion());
             documentToUpdate.setPropertyName(propertyName);
@@ -108,7 +108,6 @@ public class UpdateDocumentCommand implements QueryCommand {
                     + collection.getCollectionName() + "/updateDoc/" + document.getPropertyName() + "?doc_id=" + document.getId();
             Map<String, String> additionalHeaders = new HashMap<>();
             additionalHeaders.put("newPropertyValue", document.getPropertyValue().toString());
-
             new BroadcastService.BroadcastRequestBuilder()
                     .withUrl(url)
                     .withMethod(HttpMethod.PUT)

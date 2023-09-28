@@ -1,4 +1,4 @@
-package com.example.Database.file;
+ package com.example.Database.file;
 
 import com.example.Database.index.Index;
 import com.example.Database.index.PropertyIndex;
@@ -101,19 +101,21 @@ public final class FileService {
     }
 
 
-    public static void createDirectoryIfNotExist(File file){
-        if (!file.exists()) {
-            boolean dirCreated = file.mkdirs();
-            if (!dirCreated) {
-                System.err.println("Failed to create " + file.getName());
+    public static synchronized void createDirectoryIfNotExist(Path path){
+        try {
+            if (!Files.exists(path)) {
+                Files.createDirectories(path);
             }
+        } catch (IOException e) {
+            System.err.println("Failed to create " + path.getFileName());
+            e.printStackTrace();
         }
     }
 
-   public static int getJSONArrayLength(File collectionFile) {
-       JSONArray jsonArray = FileService.readJsonArrayFile(collectionFile);
-       return jsonArray != null ? jsonArray.size() : 0;
-   }
+    public static int getJSONArrayLength(File collectionFile) {
+        JSONArray jsonArray = FileService.readJsonArrayFile(collectionFile);
+        return jsonArray != null ? jsonArray.size() : 0;
+    }
 
 
     public static File getRootFile(){
@@ -134,13 +136,13 @@ public final class FileService {
 
     public static String getIndexFilePath(String collectionName) {
         String dirPath = DB_DIRECTORY + "/indexes/" + collectionName + "_indexes";
-        createDirectoryIfNotExist(new File(dirPath));
+        createDirectoryIfNotExist(new File(dirPath).toPath());
         return dirPath + "/" + collectionName + "_index.txt";
     }
 
     public static String getPropertyIndexFilePath(String collectionName, String propertyName) {
         String dirPath = DB_DIRECTORY + "/indexes/" + collectionName + "_indexes";
-        createDirectoryIfNotExist(new File(dirPath));
+        createDirectoryIfNotExist(new File(dirPath).toPath());
         return dirPath + "/" + collectionName + "_" + propertyName + "_property_index.txt";
     }
 
@@ -172,13 +174,12 @@ public final class FileService {
                 databases.add(dbDir.getName());
             }
         }
-
         return databases;
     }
 
     public static JSONObject readJsonObjectFile(File file) {
         JSONParser parser = new JSONParser();
-        try (FileReader reader = new FileReader(file)) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             if (file.length() == 0) {
                 return new JSONObject();
             }
@@ -202,7 +203,7 @@ public final class FileService {
             }
         }
         try (RandomAccessFile stream = new RandomAccessFile(file, "rw");
-           FileChannel channel = stream.getChannel()) {
+             FileChannel channel = stream.getChannel()) {
             channel.truncate(0);
             byte[] bytes = jsonObject.toJSONString().getBytes();
             ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
@@ -222,7 +223,7 @@ public final class FileService {
 
     public static JSONArray readJsonArrayFile(File file) {
         JSONParser parser = new JSONParser();
-        try (FileReader reader = new FileReader(file)) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             if (file.length() == 0) {
                 return new JSONArray();
             }
@@ -232,6 +233,17 @@ public final class FileService {
             e.printStackTrace();
             System.err.println("Error while reading JSON file: " + e.getMessage());
             return null;
+        }
+    }
+
+    public static boolean writeJsonArrayFile(Path filePath, JSONArray jsonArray) {
+        try {
+            Files.createDirectories(filePath.getParent());
+            Files.writeString(filePath, jsonArray.toJSONString());
+            return true;
+        } catch (IOException e) {
+            System.err.println("Error while writing JSON file: " + e.getMessage());
+            return false;
         }
     }
 
@@ -305,19 +317,19 @@ public final class FileService {
 
     public static void rewritePropertyIndexFile(String path, PropertyIndex propertyIndex) {
         try {
-        File file = new File(path);
-        List<Map.Entry<String, String>> allEntries = propertyIndex.getBPlusTree().getAllEntries();
-        if (allEntries.isEmpty()) {
-            if (FileService.isFileExists(file.getPath())) {
-                file.delete();
-                File parentDir = file.getParentFile();
-                if (isDirectoryExists(parentDir) && Objects.requireNonNull(parentDir.list()).length == 0) {
-                    System.out.println("indexes directory is empty deleting it..........");
-                    deleteDirectoryRecursively(file.toPath());
+            File file = new File(path);
+            List<Map.Entry<String, String>> allEntries = propertyIndex.getBPlusTree().getAllEntries();
+            if (allEntries.isEmpty()) {
+                if (FileService.isFileExists(file.getPath())) {
+                    file.delete();
+                    File parentDir = file.getParentFile();
+                    if (isDirectoryExists(parentDir) && Objects.requireNonNull(parentDir.list()).length == 0) {
+                        System.out.println("indexes directory is empty deleting it..........");
+                        deleteDirectoryRecursively(file.toPath());
+                    }
                 }
+                return;
             }
-            return;
-        }
             file.createNewFile();
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
                 for (Map.Entry<String, String> entry : allEntries) {
@@ -344,35 +356,6 @@ public final class FileService {
             return new JSONObject(resultMap);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    public static boolean writeJsonArrayFile(File file, JSONArray jsonArray) {
-        if (!file.exists()) {
-            try {
-                file.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.err.println("Error while creating the file: " + e.getMessage());
-                return false;
-            }
-        }
-        try (RandomAccessFile stream = new RandomAccessFile(file, "rw");
-             FileChannel channel = stream.getChannel()) {
-            channel.truncate(0);
-            byte[] bytes = jsonArray.toJSONString().getBytes();
-            ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-            buffer.clear();
-            buffer.put(bytes);
-            buffer.flip();
-            while (buffer.hasRemaining()) {
-                channel.write(buffer);
-            }
-            return true;
-        }catch (IOException e) {
-            e.printStackTrace();
-            System.err.println("Error while writing JSON file: " + e.getMessage());
-            return false;
         }
     }
 

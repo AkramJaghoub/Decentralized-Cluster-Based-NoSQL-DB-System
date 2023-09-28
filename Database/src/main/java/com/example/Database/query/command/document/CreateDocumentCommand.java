@@ -55,7 +55,7 @@ public class CreateDocumentCommand implements QueryCommand {
             int currentWorkerPort = affinityManager.getCurrentWorkerPort();
             if (!isBroadcasted && currentWorkerPort != workerWithAffinity) {
                 System.out.println("The current worker is not the one with affinity. Redirecting...");
-                document.setReplicated(true); //set replication to true to not change on the data and avoid duplications
+                document.setReplicated(true); //set replication to true to not change on the content and avoid duplications
                 return redirectionService.redirectToWorkerForCreation(database, collection, document, workerWithAffinity);
             }
             ApiResponse response;
@@ -93,7 +93,7 @@ public class CreateDocumentCommand implements QueryCommand {
         Collection collection = (Collection) details.get("collection");
         Document document = (Document) details.get("document");
         int originatingWorkerPort = (int) details.get("originatingWorkerPort");
-        JSONObject documentJson = new JSONObject(document.getData());
+        JSONObject documentJson = new JSONObject(document.getContent());
         for (int i = 1; i <= affinityManager.getNumberOfNodes(); i++) {
             if (i == originatingWorkerPort)
                 continue; // skip the worker who has done the operation

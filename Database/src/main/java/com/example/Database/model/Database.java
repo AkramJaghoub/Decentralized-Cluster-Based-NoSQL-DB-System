@@ -1,5 +1,7 @@
 package com.example.Database.model;
 
+import com.example.Database.index.IndexManager;
+
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -39,6 +41,7 @@ public class Database {
             throw new IllegalArgumentException("Database name cannot be null or empty.");
         }
         collections.remove(collectionName);
+        IndexManager.getInstance().deleteAllIndexes();
     }
 
     @Override

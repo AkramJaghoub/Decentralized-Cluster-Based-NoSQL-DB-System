@@ -1,26 +1,31 @@
 package com.example.Database.index;
 
 import com.example.Database.file.FileService;
-import jakarta.annotation.PostConstruct;
-import org.springframework.stereotype.Service;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-@Service
 public class IndexManager {
 
     private final Map<String, Index> indexMap = new ConcurrentHashMap<>();
     private final Map<String, PropertyIndex> propertyIndexMap = new ConcurrentHashMap<>();
 
-    @PostConstruct
-    public void init() {
+    private static IndexManager instance;
+
+    private IndexManager(){
         List<String> allDatabases = FileService.getAllKnownDatabases();
         for (String dbName : allDatabases) {
             FileService.setDatabaseDirectory(dbName);
             this.loadAllIndexes();
         }
+    }
+
+    public static IndexManager getInstance(){
+        if(instance == null){
+            instance = new IndexManager();
+        }
+        return instance;
     }
 
     public void loadAllIndexes() {
@@ -38,9 +43,9 @@ public class IndexManager {
                 if (filesInDir != null) {
                     for (String indexFile : filesInDir) {
                         if (FileService.isPropertyIndexFile(indexFile)) {
-                            loadPropertyIndexForCollection(indexFile);
+                            this.loadPropertyIndexForCollection(indexFile);
                         } else if (FileService.isIndexFile(indexFile)) {
-                            loadIndexForCollection(indexFile);
+                            this.loadIndexForCollection(indexFile);
                         }
                     }
                 }
@@ -55,7 +60,7 @@ public class IndexManager {
         String indexPath = FileService.getIndexFilePath(cleanCollectionName);
         Index index = new Index();
         indexMap.put(cleanCollectionName, index);
-        loadFromFile(indexPath, index);
+        this.loadFromFile(indexPath, index);
     }
 
     private void loadPropertyIndexForCollection(String collectionFileName) {
@@ -81,6 +86,11 @@ public class IndexManager {
                 ((PropertyIndex) index).insert(entry.getKey(), entry.getValue());
             }
         }
+    }
+
+    public void deleteAllIndexes(){
+        indexMap.clear();
+        propertyIndexMap.clear();
     }
 
     public Index getIndex(String collectionName) {
@@ -158,7 +168,6 @@ public class IndexManager {
         if (!propertyValue.equals(existingPropertyValue)) {
             System.out.println("Inserted new entry in property index for collection: " + collectionName + " property: " + propertyName);
             propertyIndex.insert(combinedKey, propertyValue);
-            System.out.println(propertyIndex.search(combinedKey)  + " search forrrrrrrrr itttttttt");
             FileService.appendToIndexFile(FileService.getPropertyIndexFilePath(collectionName, propertyName), combinedKey, propertyValue);
         } else {
             System.out.println("Entry already exists in property index for collection: " + collectionName + " property: " + propertyName);
@@ -182,10 +191,8 @@ public class IndexManager {
         if (propertyIndex == null) {
             throw new IllegalArgumentException("Property Index does not exist.");
         }
-
         String combinedKey = propertyName.equals("accountNumber") ? documentId : documentId + "_" + propertyName;  // Handle account number differently
         propertyIndex.delete(combinedKey);
-        System.out.println("Deleted property with combinedKey " + combinedKey + " property name " + propertyName + " collection " + collectionName);
         FileService.rewritePropertyIndexFile(FileService.getPropertyIndexFilePath(collectionName, propertyName), propertyIndex);
     }
 

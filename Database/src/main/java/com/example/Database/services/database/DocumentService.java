@@ -29,10 +29,9 @@ public class DocumentService {
 
 
     @Autowired
-    public DocumentService(SchemaValidator schemaValidator, IndexManager indexManager,
-                           AffinityManager affinityManager, AccountDirectoryService accountDirectoryService) {
+    public DocumentService(SchemaValidator schemaValidator, AffinityManager affinityManager, AccountDirectoryService accountDirectoryService) {
         this.schemaValidator = schemaValidator;
-        this.indexManager = indexManager;
+        this.indexManager = IndexManager.getInstance();
         this.affinityManager = affinityManager;
         this.accountDirectoryService = accountDirectoryService;
     }
@@ -45,10 +44,10 @@ public class DocumentService {
             if (!indexManager.indexExists(collectionName)) {
                 indexManager.createIndex(collectionName);
             }
-            JSONObject jsonData = document.getData();
+            JSONObject jsonData = document.getContent();
             String accountNumber = (jsonData.get("accountNumber") instanceof Long)
                     ? Long.toString((Long) jsonData.get("accountNumber")).trim()
-                    : document.getData().get("accountNumber").toString().trim();
+                    : document.getContent().get("accountNumber").toString().trim();
             if (!accountNumber.isEmpty()) {
                 if (!indexManager.propertyIndexExists(collectionName, "accountNumber")) {
                     indexManager.createPropertyIndex(collectionName, "accountNumber");
@@ -126,7 +125,7 @@ public class DocumentService {
             if (!indexManager.indexExists(collectionName)) {
                 indexManager.createIndex(collectionName);
             }
-            JSONObject deletedDocument = DatabaseFileOperations.deleteDocument(collectionName, document.getId(), indexManager);
+            JSONObject deletedDocument = DatabaseFileOperations.deleteDocument(collectionName, document.getId());
             if (deletedDocument != null) {
                 indexManager.deleteFromIndex(collectionName, document.getId());
                 List<String> indexedProperties = Arrays.asList("accountNumber", "balance", "accountType", "hasInsurance");
@@ -158,7 +157,7 @@ public class DocumentService {
             if (!indexManager.propertyIndexExists(collectionName, propertyName)) {
                 indexManager.createPropertyIndex(collectionName, propertyName);
             }
-            return DatabaseFileOperations.updateDocumentProperty(collectionName, document, propertyName, castedValueString, indexManager);
+            return DatabaseFileOperations.updateDocumentProperty(collectionName, document, propertyName, castedValueString);
         } finally {
             collection.getDocumentLock().unlock();
         }

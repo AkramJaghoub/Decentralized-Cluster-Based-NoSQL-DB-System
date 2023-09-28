@@ -66,6 +66,7 @@ public class CustomerController {
     public ResponseEntity<String> withdraw(@RequestHeader("accountNumber") String accountNumber,
                                            @RequestBody JSONObject request) {
         double amountToWithdraw = Double.parseDouble(request.get("amount").toString());
+        System.out.println(accountNumber);
         AccountReference accountReference = accountDirectoryService.getAccountLocation(accountNumber);
         String dbName = accountReference.getDatabaseName();
         String collectionName = accountReference.getCollectionName();

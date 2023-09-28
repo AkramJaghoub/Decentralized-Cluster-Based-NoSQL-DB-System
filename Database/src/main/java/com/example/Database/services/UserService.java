@@ -14,7 +14,7 @@ public class UserService {
     public String addCustomer(String accountNumber, String password) {
         String filePath = FileService.getUserJsonPath("customers");
         if (!FileService.isFileExists(filePath)) {
-            FileService.writeJsonArrayFile(new File(filePath), new JSONArray());
+            FileService.writeJsonArrayFile(new File(filePath).toPath(), new JSONArray());
         }
         JSONArray customersArray = FileService.readJsonArrayFile(new File(filePath));
         if (customersArray == null) {
@@ -30,7 +30,7 @@ public class UserService {
         newCustomer.put("accountNumber", accountNumber);
         newCustomer.put("password", password); //hashing the password
         customersArray.add(newCustomer);
-        FileService.writeJsonArrayFile(new File(filePath), customersArray);
+        FileService.writeJsonArrayFile(new File(filePath).toPath(), customersArray);
         return "Customer added successfully";
     }
 
@@ -58,7 +58,7 @@ public class UserService {
         if (!found) {
             return "Customer not found";
         }
-        FileService.writeJsonArrayFile(new File(filePath), customersArray);
+        FileService.writeJsonArrayFile(new File(filePath).toPath(), customersArray);
         return "Customer deleted successfully";
     }
 
@@ -81,7 +81,7 @@ public class UserService {
             }
         }
         newAdmin.put("username", username);
-        newAdmin.put("password", password); //hashing the password
+        newAdmin.put("password", password);
         FileService.writeJsonObjectFile(new File(filePath), newAdmin);
         return "admin added successfully";
     }

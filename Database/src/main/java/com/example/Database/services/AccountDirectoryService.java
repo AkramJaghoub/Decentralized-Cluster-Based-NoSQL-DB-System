@@ -24,7 +24,6 @@ public class AccountDirectoryService {
 
     public void deleteAccount(String accountNumber) {
         accountDirectory.remove(accountNumber);
-        System.out.println("pfffffffffffffft");
         Map<String, AccountReference> existingDirectory = FileService.loadAccountDirectory();
         System.out.println(accountDirectory.keySet());
         existingDirectory.remove(accountNumber);

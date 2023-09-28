@@ -12,13 +12,17 @@ import java.util.Set;
 public class DatabaseService {
 
    public ApiResponse createDB(String dbName) {
+       //soft addition
        InMemoryDatabase.getInstance().createDatabase(dbName);
+       //hard addition
        return DatabaseFileOperations.createDatabase();
    }
 
     public ApiResponse deleteDB(String dbName) {
+        //soft delete
         InMemoryDatabase.getInstance().deleteDatabase(dbName);
-        return DatabaseFileOperations.deleteDatabase();
+        //hard delete
+        return DatabaseFileOperations.deleteDatabase(dbName);
     }
 
     public List<String> readDBs() {
